@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import Dashboard from './pages/Dashboard';
 import Employees from './pages/Employees';
 import Reports   from './pages/Reports';
@@ -65,7 +65,7 @@ export default function App() {
             Logout
           </button>
           <div style={{padding:'12px 0', borderTop:'1px solid var(--border)', color:'#f59e0b', fontSize:11, fontWeight: 600, letterSpacing: '0.3px', marginTop: '12px', lineHeight: '1.4'}}>
-            ⚠️ Free Plan (1GB) <br/> May crash when overloaded
+            ⚠️ Free Plan (1GB) Firebase <br/> May crash when overloaded
           </div>
         </div>
       </aside>
