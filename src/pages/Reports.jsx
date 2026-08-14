@@ -87,7 +87,7 @@ export default function Reports() {
 
       setPreview({ logs: allLogs, summary });
     } catch (err) {
-      alert('Lỗi khi lấy dữ liệu: ' + err.message);
+      alert('Error fetching data: ' + err.message);
     }
     setLoading(false);
   }

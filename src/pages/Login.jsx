@@ -13,7 +13,7 @@ export default function Login({ onLogin }) {
     if (account === ADMIN_ACCOUNT && password === ADMIN_PASS) {
       onLogin();
     } else {
-      setError('Tài khoản hoặc mật khẩu không chính xác');
+      setError('Incorrect username or password');
     }
   };
 
@@ -41,20 +41,20 @@ export default function Login({ onLogin }) {
             Auto<span>Seller</span> Admin
           </div>
           <p style={{ color: 'var(--muted)', fontSize: '14px', marginTop: '8px' }}>
-            Vui lòng đăng nhập để truy cập Dashboard
+            Please login to access Dashboard
           </p>
         </div>
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>
-              Tài khoản
+              Username
             </label>
             <input
               type="text"
               value={account}
               onChange={(e) => setAccount(e.target.value)}
-              placeholder="Nhập tài khoản"
+              placeholder="Enter username"
               style={{
                 width: '100%',
                 padding: '12px 16px',
@@ -75,7 +75,7 @@ export default function Login({ onLogin }) {
 
           <div>
             <label style={{ display: 'block', fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>
-              Mật khẩu
+              Password
             </label>
             <input
               type="password"
@@ -133,7 +133,7 @@ export default function Login({ onLogin }) {
             onMouseDown={(e) => e.target.style.transform = 'scale(0.98)'}
             onMouseUp={(e) => e.target.style.transform = 'scale(1)'}
           >
-            Đăng nhập
+            Login
           </button>
         </form>
       </div>
