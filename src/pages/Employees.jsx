@@ -241,10 +241,10 @@ export default function Employees() {
 
               return (
                 <tr key={safeKey}>
-                  <td style={{fontFamily:'monospace', fontSize:13, color:'var(--muted)'}}>
+                  <td data-label="License Key" style={{fontFamily:'monospace', fontSize:13, color:'var(--muted)'}}>
                     {emp.key || safeKey}
                   </td>
-                  <td>
+                  <td data-label="Display Name">
                     {isEditing ? (
                       <input
                         value={editVal}
@@ -259,18 +259,18 @@ export default function Employees() {
                       </span>
                     )}
                   </td>
-                  <td>
+                  <td data-label="Status">
                     <StatusBadge status={realStatus} />
                   </td>
-                  <td style={{color: realStatus !== 'OFFLINE' ? 'var(--text)' : 'var(--muted)'}}>
+                  <td data-label="Current Map" style={{color: realStatus !== 'OFFLINE' ? 'var(--text)' : 'var(--muted)'}}>
                     {emp.currentMap || '—'}
                   </td>
-                  <td style={{fontSize:13, color:'var(--muted)'}}>
+                  <td data-label="Last Seen" style={{fontSize:13, color:'var(--muted)'}}>
                     {emp.lastSeen ? new Date(emp.lastSeen).toLocaleString('en-US') : '—'}
                   </td>
 
                   {/* Remote Control Column */}
-                  <td>
+                  <td data-label="Remote Control">
                     {realStatus !== 'OFFLINE' ? (
                       <div style={{display:'flex', flexDirection:'column', gap:6}}>
                         {/* Feedback message (from cmdFeedback or Firebase lastAction) */}
@@ -312,7 +312,7 @@ export default function Employees() {
                   </td>
 
                   {/* Manage Column */}
-                  <td>
+                  <td data-label="Manage">
                     {isEditing ? (
                       <div style={{display:'flex', gap:6}}>
                         <button className="btn success" style={{padding:'5px 12px', fontSize:13}} onClick={() => saveName(safeKey)}>✓ Save</button>

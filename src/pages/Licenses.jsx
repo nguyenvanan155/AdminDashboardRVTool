@@ -115,16 +115,16 @@ export default function Licenses() {
               
               return (
                 <tr key={safeKey}>
-                  <td style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--text)', fontSize: 14 }}>
+                  <td data-label="License Key" style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--text)', fontSize: 14 }}>
                     {lic.key || safeKey}
                   </td>
-                  <td>
+                  <td data-label="Status">
                     <span className={`badge ${badgeClass}`}>
                       <div className={`dot ${badgeClass === 'online' ? 'g' : 'r'}`} />
                       {lic.status === 'DISABLED' ? 'DISABLED' : (isExpired ? 'EXPIRED' : 'ACTIVE')}
                     </span>
                   </td>
-                  <td style={{ fontFamily: 'monospace', fontSize: 12, color: lic.hwid ? 'var(--text)' : 'var(--muted)' }}>
+                  <td data-label="HWID" style={{ fontFamily: 'monospace', fontSize: 12, color: lic.hwid ? 'var(--text)' : 'var(--muted)' }}>
                     {lic.hwid || 'Not Bound'}
                     {lic.hwid && (
                       <button className="btn" style={{ marginLeft: 8, padding: '2px 8px', fontSize: 11, background: 'rgba(255,255,255,0.05)' }} onClick={() => resetHwid(safeKey)}>
@@ -132,7 +132,7 @@ export default function Licenses() {
                       </button>
                     )}
                   </td>
-                  <td>
+                  <td data-label="Expiry Date">
                     <input 
                       type="date"
                       value={lic.expiry || ''}
@@ -140,7 +140,7 @@ export default function Licenses() {
                       style={{ padding: '4px 8px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 4 }}
                     />
                   </td>
-                  <td>
+                  <td data-label="Note">
                     <input 
                       type="text"
                       placeholder="User name, info..."
@@ -149,7 +149,7 @@ export default function Licenses() {
                       style={{ padding: '4px 8px', width: 140 }}
                     />
                   </td>
-                  <td>
+                  <td data-label="Actions">
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button className="btn" style={{ padding: '4px 10px', fontSize: 12, background: 'rgba(255,255,255,0.05)' }} onClick={() => toggleStatus(safeKey, lic.status)}>
                         {lic.status === 'ACTIVE' ? '🚫 Disable' : '✅ Enable'}

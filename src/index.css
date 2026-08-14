@@ -284,3 +284,54 @@ select:focus, input:focus { border-color: var(--accent); }
     align-items: stretch;
   }
 }
+
+@media (max-width: 768px) {
+  /* Convert tables to responsive cards */
+  table, thead, tbody, th, td, tr {
+    display: block;
+    width: 100%;
+  }
+
+  thead tr {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+
+  table tbody tr {
+    margin-bottom: 20px;
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  table td {
+    border: none !important;
+    position: relative;
+    padding: 10px 0 10px 110px !important;
+    text-align: left;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  }
+
+  table td:last-child {
+    border-bottom: none !important;
+  }
+
+  table td::before {
+    position: absolute;
+    top: 12px;
+    left: 0;
+    width: 100px;
+    white-space: nowrap;
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 13px;
+    content: attr(data-label);
+  }
+}
