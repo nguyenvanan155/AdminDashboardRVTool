@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ref, onValue, remove } from 'firebase/database';
+import { ref, onValue } from 'firebase/database';
 import { db } from '../firebase';
 
 const FIREBASE_SECRET = 'h88ZsD2lxYWBws2UD7gEdukIRdMmGV7iwb8tpJJD';
@@ -9,6 +9,7 @@ function loadNameMap() {
   try { return JSON.parse(localStorage.getItem('nameMap') || '{}'); }
   catch { return {}; }
 }
+
 function StatusBadge({ status }) {
   if (status === 'ACTIVE')  return <span className="badge online"><div className="dot g" />🟢 Active</span>;
   if (status === 'IDLE')    return <span className="badge" style={{background:'rgba(234,179,8,0.12)',color:'#eab308'}}><div className="dot y" />🟡 Idle</span>;
@@ -16,6 +17,7 @@ function StatusBadge({ status }) {
 }
 
 function getRealStatus(emp) {
+  if (!emp) return 'OFFLINE';
   if (emp.status === 'OFFLINE') return 'OFFLINE';
   if (!emp.lastSeen || Date.now() - emp.lastSeen > 180000) return 'OFFLINE';
   return emp.status;
@@ -46,7 +48,7 @@ function ProxyModal({ safeKey, dispName, onClose, onSent }) {
     setLoading(true);
     try {
       await sendCommand(safeKey, 'fetch_proxies', { provider, num: Number(num), country });
-      onSent(`⏳ Fetching ${num} proxies via ${provider.toUpperCase()}... (check feedback in ~5s)`);
+      onSent(`⏳ Fetching ${num} proxies via ${provider.toUpperCase()}...`);
       onClose();
     } catch (e) {
       alert('Failed to send command: ' + e.message);
@@ -139,163 +141,206 @@ function ProxyModal({ safeKey, dispName, onClose, onSent }) {
 /* ------------------------------------------------------------------ */
 
 export default function Control() {
-  const [employees,   setEmployees]   = useState({});
-  const [nameMap,     setNameMap]     = useState(loadNameMap);
-    const [cmdFeedback, setCmdFeedback] = useState({}); // { safeKey: 'Sent!' }
-  const [proxyModal,  setProxyModal]  = useState(null); // safeKey of open modal
+  const [employees, setEmployees] = useState({});
+  const [nameMap] = useState(loadNameMap());
+  const [selectedKey, setSelectedKey] = useState('');
+  
+  const [cmdFeedback, setCmdFeedback] = useState('');
+  const [proxyModalOpen, setProxyModalOpen] = useState(false);
   const [, setTick] = useState(0);
 
+  // Force re-render periodically to update 'Last Seen' calculations
   useEffect(() => {
     const timer = setInterval(() => setTick(t => t + 1), 30000);
     return () => clearInterval(timer);
   }, []);
 
+  // Listen to Firebase employees
   useEffect(() => {
     const empRef = ref(db, 'employees');
     const unsub = onValue(empRef, (snap) => {
-      setEmployees(snap.val() || {});
+      const data = snap.val() || {};
+      setEmployees(data);
+      
+      // Auto-select the first available if none selected
+      if (!selectedKey && Object.keys(data).length > 0) {
+        setSelectedKey(Object.keys(data)[0]);
+      }
     });
     return () => unsub();
-  }, []);
+  }, [selectedKey]);
 
-  function saveName(safeKey) {
-    const name = editing[safeKey];
-    if (!name?.trim()) return;
-    const updated = { ...nameMap, [safeKey]: name.trim() };
-    setNameMap(updated);
-    saveNameMap(updated);
-    setEditing(prev => { const n = {...prev}; delete n[safeKey]; return n; });
-  }
-
-    async function handleCommand(safeKey, action) {
+  async function handleCommand(action) {
+    if (!selectedKey) return;
     try {
-      await sendCommand(safeKey, action);
-      setCmdFeedback(prev => ({ ...prev, [safeKey]: `✅ Sent: ${action.toUpperCase()}` }));
-      setTimeout(() => setCmdFeedback(prev => { const n={...prev}; delete n[safeKey]; return n; }), 3000);
+      await sendCommand(selectedKey, action);
+      setCmdFeedback(`✅ Sent: ${action.toUpperCase()}`);
+      setTimeout(() => setCmdFeedback(''), 4000);
     } catch (e) {
       alert('Failed to send command: ' + e.message);
     }
   }
 
-  function onProxySent(safeKey, msg) {
-    setCmdFeedback(prev => ({ ...prev, [safeKey]: msg }));
-    setTimeout(() => setCmdFeedback(prev => { const n={...prev}; delete n[safeKey]; return n; }), 8000);
+  function onProxySent(msg) {
+    setCmdFeedback(msg);
+    setTimeout(() => setCmdFeedback(''), 6000);
   }
+
+  const selectedEmp = employees[selectedKey];
+  const realStatus = selectedEmp ? getRealStatus(selectedEmp) : 'OFFLINE';
+  const isOnline = realStatus !== 'OFFLINE';
 
   return (
     <div>
       <h1 className="page-title">🎮 Remote Control</h1>
-      <p style={{color:'var(--muted)', marginBottom:24, fontSize:14}}>Control your active bots and proxy servers across machines.</p>
+      <p style={{color:'var(--muted)', marginBottom:24, fontSize:14}}>Select a machine to manage its operations and proxy tools.</p>
 
-      {/* Proxy Modal */}
-      {proxyModal && (() => {
-        const emp = employees[proxyModal];
-        const dispName = nameMap[proxyModal] || '';
-        return (
-          <ProxyModal
-            safeKey={proxyModal}
-            dispName={dispName}
-            onClose={() => setProxyModal(null)}
-            onSent={(msg) => onProxySent(proxyModal, msg)}
-          />
-        );
-      })()}
+      {proxyModalOpen && selectedKey && (
+        <ProxyModal
+          safeKey={selectedKey}
+          dispName={nameMap[selectedKey] || selectedKey}
+          onClose={() => setProxyModalOpen(false)}
+          onSent={onProxySent}
+        />
+      )}
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>License Key</th>
-              <th>Display Name</th>
-              <th>Status</th>
-              <th>Current Map</th>
-              <th>Last Seen</th>
-              <th>Remote Control</th>
-              
-            </tr>
-          </thead>
-          <tbody>
-            {Object.keys(employees).length === 0 && (
-              <tr><td colSpan={7} className="empty">
-                No employees connected. Please run the Tool on a client machine.
-              </td></tr>
-            )}
-            {Object.entries(employees).map(([safeKey, emp]) => {
-              const realStatus = getRealStatus(emp);
-              const dispName  = nameMap[safeKey] || '';
-              const editVal   = editing[safeKey] ?? dispName;
-              const isEditing = safeKey in editing;
-              const lastAction = emp.lastAction;
-
-              return (
-                <tr key={safeKey}>
-                  <td data-label="License Key" style={{fontFamily:'monospace', fontSize:13, color:'var(--muted)'}}>
-                    {emp.key || safeKey}
-                  </td>
-                  <td data-label="Display Name">
-    <span style={{fontWeight: dispName ? 600 : 400, color: dispName ? 'var(--text)' : 'var(--muted)'}}>
-      {dispName || '(unnamed)'}
-    </span>
-  </td>
-                  <td data-label="Status">
-                    <StatusBadge status={realStatus} />
-                  </td>
-                  <td data-label="Current Map" style={{color: realStatus !== 'OFFLINE' ? 'var(--text)' : 'var(--muted)'}}>
-                    {emp.currentMap || '—'}
-                  </td>
-                  <td data-label="Last Seen" style={{fontSize:13, color:'var(--muted)'}}>
-                    {emp.lastSeen ? new Date(emp.lastSeen).toLocaleString('en-US') : '—'}
-                  </td>
-
-                  {/* Remote Control Column */}
-                  <td data-label="Remote Control">
-                    {realStatus !== 'OFFLINE' ? (
-                      <div style={{display:'flex', flexDirection:'column', gap:6}}>
-                        {/* Feedback message (from cmdFeedback or Firebase lastAction) */}
-                        {cmdFeedback[safeKey] && (
-                          <span style={{fontSize:11, color:'#4ade80', fontWeight:600}}>{cmdFeedback[safeKey]}</span>
-                        )}
-                        {!cmdFeedback[safeKey] && lastAction?.message && (
-                          <span style={{fontSize:11, color:'var(--muted)'}} title={lastAction.at ? new Date(lastAction.at).toLocaleString() : ''}>
-                            {lastAction.message}
-                          </span>
-                        )}
-                        {/* Control buttons */}
-                        <div style={{display:'flex', gap:4, flexWrap:'wrap'}}>
-                          <button className="btn"
-                            style={{padding:'4px 9px', fontSize:12, background:'rgba(59,130,246,0.15)', color:'#3b82f6', border:'1px solid rgba(59,130,246,0.3)'}}
-                            onClick={() => { if(window.confirm(`Start bot on ${dispName || safeKey}?`)) handleCommand(safeKey, 'start'); }}
-                            title="Start">⚡ Start</button>
-                          <button className="btn"
-                            style={{padding:'4px 9px', fontSize:12, background:'rgba(234,179,8,0.15)', color:'#eab308', border:'1px solid rgba(234,179,8,0.3)'}}
-                            onClick={() => handleCommand(safeKey, 'pause')}
-                            title="Pause">⏸ Pause</button>
-                          <button className="btn"
-                            style={{padding:'4px 9px', fontSize:12, background:'rgba(74,222,128,0.15)', color:'#4ade80', border:'1px solid rgba(74,222,128,0.3)'}}
-                            onClick={() => handleCommand(safeKey, 'resume')}
-                            title="Resume">▶ Resume</button>
-                          <button className="btn"
-                            style={{padding:'4px 9px', fontSize:12, background:'rgba(239,68,68,0.15)', color:'#ef4444', border:'1px solid rgba(239,68,68,0.3)'}}
-                            onClick={() => { if(window.confirm(`Stop bot on ${dispName || safeKey}?`)) handleCommand(safeKey, 'stop'); }}
-                            title="Stop">⏹ Stop</button>
-                          <button className="btn"
-                            style={{padding:'4px 9px', fontSize:12, background:'rgba(168,85,247,0.15)', color:'#a855f7', border:'1px solid rgba(168,85,247,0.3)'}}
-                            onClick={() => setProxyModal(safeKey)}
-                            title="Proxy Tools">🌐 Proxy</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <span style={{fontSize:12, color:'var(--muted)'}}>— offline —</span>
-                    )}
-                  </td>
-
-                  {/* Manage Column */}
-                  
-                </tr>
-              );
+      <div className="card" style={{ maxWidth: 600, margin: '0 auto', padding: 24 }}>
+        
+        {/* Machine Selector */}
+        <div style={{ marginBottom: 24 }}>
+          <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: 'var(--muted)', fontWeight: 600 }}>Select Machine</label>
+          <select 
+            value={selectedKey} 
+            onChange={(e) => setSelectedKey(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              borderRadius: 8,
+              border: '1px solid rgba(255,255,255,0.15)',
+              background: 'rgba(255,255,255,0.05)',
+              color: 'var(--text)',
+              fontSize: 15,
+              fontWeight: 500,
+              cursor: 'pointer'
+            }}
+          >
+            <option value="" disabled>-- Select an employee --</option>
+            {Object.entries(employees).map(([safeKey]) => {
+              const dispName = nameMap[safeKey];
+              const label = dispName ? `${dispName} (${safeKey})` : safeKey;
+              return <option key={safeKey} value={safeKey}>{label}</option>;
             })}
-          </tbody>
-        </table>
+          </select>
+        </div>
+
+        {/* Selected Employee Dashboard */}
+        {selectedEmp ? (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Current Status</div>
+                <StatusBadge status={realStatus} />
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Current Map</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: isOnline ? 'var(--text)' : 'var(--muted)' }}>
+                  {isOnline ? (selectedEmp.currentMap || 'Initializing...') : '—'}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Operations</div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <button 
+                disabled={!isOnline}
+                onClick={() => handleCommand('start')}
+                style={{
+                  padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                  background: isOnline ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.05)',
+                  color: isOnline ? '#4ade80' : 'var(--muted)',
+                  border: `1px solid ${isOnline ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                  cursor: isOnline ? 'pointer' : 'not-allowed',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                }}
+              >
+                ▶️ Start Job
+              </button>
+
+              <button 
+                disabled={!isOnline}
+                onClick={() => handleCommand('stop')}
+                style={{
+                  padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                  background: isOnline ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.05)',
+                  color: isOnline ? '#ef4444' : 'var(--muted)',
+                  border: `1px solid ${isOnline ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                  cursor: isOnline ? 'pointer' : 'not-allowed',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                }}
+              >
+                ⏹️ Stop All
+              </button>
+
+              <button 
+                disabled={!isOnline}
+                onClick={() => handleCommand('pause')}
+                style={{
+                  padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                  background: isOnline ? 'rgba(234,179,8,0.15)' : 'rgba(255,255,255,0.05)',
+                  color: isOnline ? '#eab308' : 'var(--muted)',
+                  border: `1px solid ${isOnline ? 'rgba(234,179,8,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                  cursor: isOnline ? 'pointer' : 'not-allowed',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                }}
+              >
+                ⏸️ Pause
+              </button>
+
+              <button 
+                disabled={!isOnline}
+                onClick={() => handleCommand('resume')}
+                style={{
+                  padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                  background: isOnline ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.05)',
+                  color: isOnline ? '#3b82f6' : 'var(--muted)',
+                  border: `1px solid ${isOnline ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                  cursor: isOnline ? 'pointer' : 'not-allowed',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                }}
+              >
+                ⏯️ Resume
+              </button>
+            </div>
+
+            <button 
+              disabled={!isOnline}
+              onClick={() => setProxyModalOpen(true)}
+              style={{
+                width: '100%', padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                background: isOnline ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.05)',
+                color: isOnline ? 'var(--text)' : 'var(--muted)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                cursor: isOnline ? 'pointer' : 'not-allowed',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+              }}
+            >
+              🌐 Open Proxy Tools
+            </button>
+
+            {cmdFeedback && (
+              <div style={{ marginTop: 16, padding: '12px', background: 'rgba(74,222,128,0.1)', color: '#4ade80', borderRadius: 8, textAlign: 'center', fontSize: 13, fontWeight: 600 }}>
+                {cmdFeedback}
+              </div>
+            )}
+            
+          </div>
+        ) : (
+          <div className="empty" style={{ padding: '40px 0' }}>
+            No machine selected or available.
+          </div>
+        )}
+
       </div>
     </div>
   );
