@@ -76,7 +76,7 @@ export default function TargetMapsModal({ employee, name, onClose }) {
                 const pct = t.total > 0 ? Math.round((t.used / t.total) * 100) : 0;
                 return (
                   <tr key={id}>
-                    <td style={tdStyle}>
+                    <td data-label="Map Name" style={tdStyle}>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{t.name}</div>
                       <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
                         {t.url ? (
@@ -87,10 +87,10 @@ export default function TargetMapsModal({ employee, name, onClose }) {
                         ) : '—'}
                       </div>
                     </td>
-                    <td style={tdStyle}>
+                    <td data-label="Status" style={tdStyle}>
                       <StatusBadge status={t.status} />
                     </td>
-                    <td style={{ ...tdStyle, minWidth: 140 }}>
+                    <td data-label="Progress" style={{ ...tdStyle, minWidth: 140 }}>
                       <div style={{ marginBottom: 4, fontSize: 12, color: 'var(--muted)' }}>{pct}%</div>
                       <div style={{
                         width: '100%', height: 6, borderRadius: 4,
@@ -103,9 +103,9 @@ export default function TargetMapsModal({ employee, name, onClose }) {
                         }} />
                       </div>
                     </td>
-                    <td style={{ ...tdStyle, color: 'var(--success)', fontWeight: 600 }}>{t.used}</td>
-                    <td style={{ ...tdStyle, color: t.unused > 0 ? 'var(--warn)' : 'var(--muted)' }}>{t.unused}</td>
-                    <td style={{ ...tdStyle, fontWeight: 600 }}>{t.total}</td>
+                    <td data-label="Used" style={{ ...tdStyle, color: 'var(--success)', fontWeight: 600 }}>{t.used}</td>
+                    <td data-label="Unused" style={{ ...tdStyle, color: t.unused > 0 ? 'var(--warn)' : 'var(--muted)' }}>{t.unused}</td>
+                    <td data-label="Total" style={{ ...tdStyle, fontWeight: 600 }}>{t.total}</td>
                   </tr>
                 );
               })}

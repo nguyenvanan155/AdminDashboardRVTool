@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 import Dashboard from './pages/Dashboard';
 import Employees from './pages/Employees';
+import Control   from './pages/Control';
 import Reports   from './pages/Reports';
 import Licenses  from './pages/Licenses';
 import Login     from './pages/Login';
@@ -9,6 +10,7 @@ import './index.css';
 const PAGES = [
   { id: 'dashboard', label: 'Dashboard',      icon: '📊' },
   { id: 'employees', label: 'Employees',      icon: '👥' },
+  { id: 'control',   label: 'Remote Control', icon: '🎮' },
   { id: 'licenses',  label: 'License Keys',   icon: '🔑' },
   { id: 'reports',   label: 'Export Reports', icon: '📥' },
 ];
@@ -80,6 +82,7 @@ export default function App() {
       <main className="main">
         {page === 'dashboard' && <Dashboard />}
         {page === 'employees' && <Employees />}
+        {page === 'control'   && <Control />}
         {page === 'licenses'  && <Licenses />}
         {page === 'reports'   && <Reports />}
       </main>

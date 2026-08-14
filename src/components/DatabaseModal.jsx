@@ -191,7 +191,7 @@ export default function DatabaseModal({ employee, name, onClose }) {
                     const pct = t.total > 0 ? Math.round((t.used / t.total) * 100) : 0;
                     return (
                       <tr key={id}>
-                        <td style={CSS.td}>
+                        <td data-label="Map Name" style={CSS.td}>
                           <div style={{ fontWeight: 600, fontSize: 14 }}>{t.name}</div>
                           {t.url && (
                             <a href={t.url} target="_blank" rel="noreferrer"
@@ -200,15 +200,15 @@ export default function DatabaseModal({ employee, name, onClose }) {
                             </a>
                           )}
                         </td>
-                        <td style={CSS.td}>
+                        <td data-label="Daily Limit" style={CSS.td}>
                           <span style={{ fontWeight: 600 }}>
                             {t.daily_limit > 0 ? `${t.daily_limit} / day` : 'No limit'}
                           </span>
                         </td>
-                        <td style={CSS.td}>
+                        <td data-label="Quota" style={CSS.td}>
                           <LimitBadge limitReachedAt={t.limit_reached_at} />
                         </td>
-                        <td style={CSS.td}>
+                        <td data-label="Progress" style={CSS.td}>
                           <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>{pct}%</div>
                           <div style={{
                             width: '100%', height: 6, borderRadius: 4,
@@ -222,19 +222,19 @@ export default function DatabaseModal({ employee, name, onClose }) {
                           </div>
                         </td>
                         {/* RC Unused — sẵn sàng chạy */}
-                        <td style={{ ...CSS.td, color: t.unused > 0 ? 'var(--success)' : 'var(--muted)', fontWeight: 600 }}>
+                        <td data-label="RC Unused" style={{ ...CSS.td, color: t.unused > 0 ? 'var(--success)' : 'var(--muted)', fontWeight: 600 }}>
                           {t.unused ?? 0}
                         </td>
                         {/* RC Used — đã review thành công */}
-                        <td style={{ ...CSS.td, color: 'var(--accent)', fontWeight: 600 }}>
+                        <td data-label="RC Used" style={{ ...CSS.td, color: 'var(--accent)', fontWeight: 600 }}>
                           {t.used ?? 0}
                         </td>
                         {/* Pending Link — đã đăng, chờ link */}
-                        <td style={{ ...CSS.td, color: t.pendingLink > 0 ? '#eab308' : 'var(--muted)', fontWeight: 600 }}>
+                        <td data-label="Pending Link" style={{ ...CSS.td, color: t.pendingLink > 0 ? '#eab308' : 'var(--muted)', fontWeight: 600 }}>
                           {t.pendingLink ?? 0}
                         </td>
                         {/* Total */}
-                        <td style={{ ...CSS.td, fontWeight: 600 }}>{t.total ?? 0}</td>
+                        <td data-label="Total RC" style={{ ...CSS.td, fontWeight: 600 }}>{t.total ?? 0}</td>
                       </tr>
                     );
                   })}
