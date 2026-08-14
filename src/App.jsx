@@ -15,6 +15,7 @@ const PAGES = [
 
 export default function App() {
   const [page, setPage] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -41,14 +42,19 @@ export default function App() {
 
   return (
     <div className="layout">
+      <div className="mobile-header">
+        <button className="hamburger" onClick={() => setIsSidebarOpen(true)}>☰</button>
+        <div className="mobile-logo">Admin <span>Dashboard</span></div>
+      </div>
+      {isSidebarOpen && <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)}></div>}
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="logo">Admin <span>Dashboard</span></div>
         {PAGES.map(p => (
           <button
             key={p.id}
             className={`nav-btn ${page === p.id ? 'active' : ''}`}
-            onClick={() => setPage(p.id)}
+            onClick={() => { setPage(p.id); setIsSidebarOpen(false); }}
           >
             <span className="icon">{p.icon}</span>
             {p.label}
