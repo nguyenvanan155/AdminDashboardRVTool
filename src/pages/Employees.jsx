@@ -1,45 +1,25 @@
 import { useState, useEffect } from 'react';
-import { ref, onValue, remove } from 'firebase/database';
+import { ref, onValue, update } from 'firebase/database';
 import { db } from '../firebase';
 
-const FIREBASE_SECRET = 'h88ZsD2lxYWBws2UD7gEdukIRdMmGV7iwb8tpJJD';
-const FIREBASE_URL    = 'https://admin-reviewtool-default-rtdb.asia-southeast1.firebasedatabase.app';
-
-function loadNameMap() {
-  try { return JSON.parse(localStorage.getItem('nameMap') || '{}'); }
-  catch { return {}; }
-}
-function saveNameMap(map) {
-  localStorage.setItem('nameMap', JSON.stringify(map));
-}
-
 function StatusBadge({ status }) {
-  if (status === 'ACTIVE')  return <span className="badge online"><div className="dot g" />🟢 Active</span>;
-  if (status === 'IDLE')    return <span className="badge" style={{background:'rgba(234,179,8,0.12)',color:'#eab308'}}><div className="dot y" />🟡 Idle</span>;
-  return                           <span className="badge offline"><div className="dot r" />🔴 Offline</span>;
+  if (status === 'ACTIVE' || status === 'RUNNING')  return <span className="badge online"><div className="dot g" />🟢 Active</span>;
+  if (status === 'PAUSED') return <span className="badge" style={{background:'rgba(234,179,8,0.12)',color:'#eab308'}}><div className="dot y" />⏸️ Paused</span>;
+  if (status === 'IDLE' || status === 'STOPPED') return <span className="badge" style={{background:'rgba(234,179,8,0.12)',color:'#eab308'}}><div className="dot y" />🟡 Idle</span>;
+  return <span className="badge offline"><div className="dot r" />🔴 Offline</span>;
 }
 
 function getRealStatus(emp) {
+  if (!emp) return 'OFFLINE';
   if (emp.status === 'OFFLINE') return 'OFFLINE';
   if (!emp.lastSeen || Date.now() - emp.lastSeen > 180000) return 'OFFLINE';
   return emp.status;
 }
 
-/** Gửi lệnh điều khiển lên Firebase /commands/{safeKey} */
-/* ------------------------------------------------------------------ */
-/*  Proxy Modal Component                                               */
-/* ------------------------------------------------------------------ */
-
-/* ------------------------------------------------------------------ */
-/*  Main Component                                                      */
-/* ------------------------------------------------------------------ */
-
 export default function Employees() {
-  const [employees,   setEmployees]   = useState({});
-  const [nameMap,     setNameMap]     = useState(loadNameMap);
-  const [editing,     setEditing]     = useState({});
-  const [cmdFeedback, setCmdFeedback] = useState({}); // { safeKey: 'Sent!' }
-  const [proxyModal,  setProxyModal]  = useState(null); // safeKey of open modal
+  const [employees, setEmployees] = useState({});
+  const [licenses, setLicenses] = useState({});
+  const [editing, setEditing] = useState({});
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -49,34 +29,32 @@ export default function Employees() {
 
   useEffect(() => {
     const empRef = ref(db, 'employees');
-    const unsub = onValue(empRef, (snap) => {
-      setEmployees(snap.val() || {});
-    });
-    return () => unsub();
+    const licRef = ref(db, 'licenses');
+    
+    const unsubEmp = onValue(empRef, snap => setEmployees(snap.val() || {}));
+    const unsubLic = onValue(licRef, snap => setLicenses(snap.val() || {}));
+    
+    return () => { unsubEmp(); unsubLic(); };
   }, []);
 
   function saveName(safeKey) {
     const name = editing[safeKey];
-    if (!name?.trim()) return;
-    const updated = { ...nameMap, [safeKey]: name.trim() };
-    setNameMap(updated);
-    saveNameMap(updated);
+    if (name !== undefined) {
+      update(ref(db, `licenses/${safeKey}`), { note: name.trim() })
+        .catch(err => alert('Failed to save name: ' + err.message));
+    }
     setEditing(prev => { const n = {...prev}; delete n[safeKey]; return n; });
   }
 
-  function deleteEmployee(safeKey) {
-    if (!window.confirm('Are you sure you want to delete this employee? This will remove them from the dashboard until they reconnect.')) return;
-    remove(ref(db, `employees/${safeKey}`)).catch(err => alert('Failed to delete: ' + err.message));
-  }
+  const entries = Object.entries(licenses);
 
-      return (
+  return (
     <div>
       <h1 className="page-title">👥 Employee Management</h1>
       <p style={{color:'var(--muted)', marginBottom:24, fontSize:14}}>
-        Assign friendly names to License Keys. These names will be displayed across the dashboard.
+        Employee list is synchronized with your License Keys. 
+        Update the Display Name here to easily identify machines in the Remote Control tab.
       </p>
-
-      
 
       <div className="table-wrap">
         <table>
@@ -87,27 +65,26 @@ export default function Employees() {
               <th>Status</th>
               <th>Current Map</th>
               <th>Last Seen</th>
-              
               <th>Manage</th>
             </tr>
           </thead>
           <tbody>
-            {Object.keys(employees).length === 0 && (
-              <tr><td colSpan={7} className="empty">
-                No employees connected. Please run the Tool on a client machine.
+            {entries.length === 0 && (
+              <tr><td colSpan={6} className="empty">
+                No licenses found. Please create a License Key first.
               </td></tr>
             )}
-            {Object.entries(employees).map(([safeKey, emp]) => {
+            {entries.map(([safeKey, lic]) => {
+              const emp = employees[safeKey] || {};
               const realStatus = getRealStatus(emp);
-              const dispName  = nameMap[safeKey] || '';
+              const dispName  = lic.note || '';
               const editVal   = editing[safeKey] ?? dispName;
               const isEditing = safeKey in editing;
-              const lastAction = emp.lastAction;
 
               return (
                 <tr key={safeKey}>
                   <td data-label="License Key" style={{fontFamily:'monospace', fontSize:13, color:'var(--muted)'}}>
-                    {emp.key || safeKey}
+                    {lic.key || safeKey}
                   </td>
                   <td data-label="Display Name">
                     {isEditing ? (
@@ -116,7 +93,7 @@ export default function Employees() {
                         onChange={e => setEditing(prev => ({...prev, [safeKey]: e.target.value}))}
                         onKeyDown={e => e.key === 'Enter' && saveName(safeKey)}
                         placeholder="Enter employee name..."
-                        style={{width:180}}
+                        style={{width:180, padding: '4px 8px'}}
                       />
                     ) : (
                       <span style={{fontWeight: dispName ? 600 : 400, color: dispName ? 'var(--text)' : 'var(--muted)'}}>
@@ -133,9 +110,6 @@ export default function Employees() {
                   <td data-label="Last Seen" style={{fontSize:13, color:'var(--muted)'}}>
                     {emp.lastSeen ? new Date(emp.lastSeen).toLocaleString('en-US') : '—'}
                   </td>
-
-                  {/* Remote Control Column */}
-                  {/* Manage Column */}
                   <td data-label="Manage">
                     {isEditing ? (
                       <div style={{display:'flex', gap:6}}>
@@ -146,17 +120,10 @@ export default function Employees() {
                         </button>
                       </div>
                     ) : (
-                      <div style={{display:'flex', gap:6}}>
-                        <button className="btn primary" style={{padding:'5px 14px', fontSize:13}}
-                          onClick={() => setEditing(prev => ({...prev, [safeKey]: dispName}))}>
-                          ✏️ Edit Name
-                        </button>
-                        <button className="btn" style={{padding:'5px 12px', fontSize:13, background:'rgba(239, 68, 68, 0.1)', color:'#ef4444'}}
-                          onClick={() => deleteEmployee(safeKey)}
-                          title="Delete Employee">
-                          🗑️ Delete
-                        </button>
-                      </div>
+                      <button className="btn primary" style={{padding:'5px 14px', fontSize:13}}
+                        onClick={() => setEditing(prev => ({...prev, [safeKey]: dispName}))}>
+                        ✎ Edit Name
+                      </button>
                     )}
                   </td>
                 </tr>

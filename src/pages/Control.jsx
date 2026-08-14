@@ -11,9 +11,10 @@ function loadNameMap() {
 }
 
 function StatusBadge({ status }) {
-  if (status === 'ACTIVE')  return <span className="badge online"><div className="dot g" />🟢 Active</span>;
-  if (status === 'IDLE')    return <span className="badge" style={{background:'rgba(234,179,8,0.12)',color:'#eab308'}}><div className="dot y" />🟡 Idle</span>;
-  return                           <span className="badge offline"><div className="dot r" />🔴 Offline</span>;
+  if (status === 'ACTIVE' || status === 'RUNNING')  return <span className="badge online"><div className="dot g" />🟢 Active</span>;
+  if (status === 'PAUSED') return <span className="badge" style={{background:'rgba(234,179,8,0.12)',color:'#eab308'}}><div className="dot y" />⏸️ Paused</span>;
+  if (status === 'IDLE' || status === 'STOPPED') return <span className="badge" style={{background:'rgba(234,179,8,0.12)',color:'#eab308'}}><div className="dot y" />🟡 Idle</span>;
+  return <span className="badge offline"><div className="dot r" />🔴 Offline</span>;
 }
 
 function getRealStatus(emp) {
@@ -137,16 +138,145 @@ function ProxyModal({ safeKey, dispName, onClose, onSent }) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Start Modal Component                                               */
+/* ------------------------------------------------------------------ */
+
+function StartModal({ safeKey, dispName, targets, onClose, onSent }) {
+  const allIds = (targets || []).map(t => t.id);
+  const [selected, setSelected] = useState(allIds);
+  const [loading, setLoading] = useState(false);
+
+  function toggle(id) {
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+
+  async function handleStart() {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const payload = selected.length > 0 && selected.length < allIds.length
+        ? { selectedTargetIds: selected }
+        : {};  // empty = all maps
+      await sendCommand(safeKey, 'start', payload);
+      const label = selected.length === allIds.length || selected.length === 0
+        ? 'all maps'
+        : `${selected.length} map(s)`;
+      onSent(`✅ Start command sent — running ${label}`);
+      onClose();
+    } catch (e) {
+      alert('Failed to send command: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const hasTargets = targets && targets.length > 0;
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }} onClick={onClose}>
+      <div style={{
+        background: 'var(--surface,#1a1f2e)', border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 12, padding: 28, width: 480, maxWidth: '92vw', maxHeight: '80vh',
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
+      }} onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: 16 }}>▶️ Start Job — <span style={{ color: 'var(--muted,#888)', fontWeight: 400 }}>{dispName || safeKey}</span></h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--muted,#888)', cursor: 'pointer', fontSize: 18 }}>✕</button>
+        </div>
+
+        {hasTargets ? (
+          <>
+            {/* Select All / None */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+              <button onClick={() => setSelected(allIds)}
+                style={{ fontSize: 12, padding: '4px 10px', borderRadius: 5, background: 'rgba(74,222,128,0.12)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.25)', cursor: 'pointer' }}>
+                Select All
+              </button>
+              <button onClick={() => setSelected([])}
+                style={{ fontSize: 12, padding: '4px 10px', borderRadius: 5, background: 'rgba(255,255,255,0.06)', color: 'var(--muted,#888)', border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer' }}>
+                Deselect All
+              </button>
+              <span style={{ fontSize: 12, color: 'var(--muted,#888)', alignSelf: 'center', marginLeft: 'auto' }}>
+                {selected.length}/{allIds.length} selected
+              </span>
+            </div>
+
+            {/* Map list */}
+            <div style={{ overflowY: 'auto', flex: 1, marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {targets.map(t => {
+                const checked = selected.includes(t.id);
+                const depleted = t.limit_reached || t.contentUnused === 0;
+                return (
+                  <label key={t.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '8px 12px', borderRadius: 7, cursor: depleted ? 'not-allowed' : 'pointer',
+                    background: checked ? 'rgba(74,222,128,0.07)' : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${checked ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.07)'}`,
+                    opacity: depleted ? 0.45 : 1,
+                    transition: 'all 0.15s',
+                  }}>
+                    <input type="checkbox" checked={checked} disabled={depleted}
+                      onChange={() => !depleted && toggle(t.id)}
+                      style={{ width: 15, height: 15, accentColor: '#4ade80', cursor: 'pointer' }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {t.name || `Map #${t.id}`}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--muted,#888)', marginTop: 2 }}>
+                        {t.country || '—'} &nbsp;·&nbsp;
+                        Limit: {t.daily_limit || 'default'} &nbsp;·&nbsp;
+                        Unused: <span style={{ color: t.contentUnused > 0 ? '#4ade80' : '#ef4444' }}>{t.contentUnused}</span>
+                        {t.limit_reached && <span style={{ color: '#ef4444', marginLeft: 6 }}>⛔ limit reached</span>}
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <div style={{ color: 'var(--muted,#888)', fontSize: 13, marginBottom: 16, padding: '12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
+            ⚠️ No map data from tool — all maps will run. (Restart tool to sync map list.)
+          </div>
+        )}
+
+        {/* Confirm button */}
+        <button
+          onClick={handleStart}
+          disabled={loading || (hasTargets && selected.length === 0)}
+          style={{
+            width: '100%', padding: '11px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+            background: (loading || (hasTargets && selected.length === 0)) ? 'rgba(74,222,128,0.05)' : 'rgba(74,222,128,0.15)',
+            color: (hasTargets && selected.length === 0) ? 'var(--muted)' : '#4ade80',
+            border: '1px solid rgba(74,222,128,0.3)', cursor: loading ? 'not-allowed' : 'pointer',
+          }}>
+          {loading ? '⏳ Sending...' : `▶️ Start${hasTargets && selected.length > 0 && selected.length < allIds.length ? ` (${selected.length} maps)` : ' All'}`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main Component                                                      */
 /* ------------------------------------------------------------------ */
 
 export default function Control() {
   const [employees, setEmployees] = useState({});
+  const [licenses, setLicenses] = useState({});
   const [nameMap] = useState(loadNameMap());
   const [selectedKey, setSelectedKey] = useState('');
   
   const [cmdFeedback, setCmdFeedback] = useState('');
   const [proxyModalOpen, setProxyModalOpen] = useState(false);
+  const [startModalOpen, setStartModalOpen] = useState(false);
   const [, setTick] = useState(0);
 
   // Force re-render periodically to update 'Last Seen' calculations
@@ -158,6 +288,8 @@ export default function Control() {
   // Listen to Firebase employees
   useEffect(() => {
     const empRef = ref(db, 'employees');
+    const licRef = ref(db, 'licenses');
+    onValue(licRef, snap => setLicenses(snap.val() || {}));
     const unsub = onValue(empRef, (snap) => {
       const data = snap.val() || {};
       setEmployees(data);
@@ -198,9 +330,19 @@ export default function Control() {
       {proxyModalOpen && selectedKey && (
         <ProxyModal
           safeKey={selectedKey}
-          dispName={nameMap[selectedKey] || selectedKey}
+          dispName={licenses[selectedKey]?.note || selectedKey}
           onClose={() => setProxyModalOpen(false)}
           onSent={onProxySent}
+        />
+      )}
+
+      {startModalOpen && selectedKey && (
+        <StartModal
+          safeKey={selectedKey}
+          dispName={licenses[selectedKey]?.note || selectedKey}
+          targets={selectedEmp?.targets || []}
+          onClose={() => setStartModalOpen(false)}
+          onSent={(msg) => { setCmdFeedback(msg); setTimeout(() => setCmdFeedback(''), 6000); }}
         />
       )}
 
@@ -226,9 +368,9 @@ export default function Control() {
           >
             <option value="" disabled>-- Select an employee --</option>
             {Object.entries(employees).map(([safeKey]) => {
-              const dispName = nameMap[safeKey];
+              const dispName = licenses[safeKey]?.note;
               const label = dispName ? `${dispName} (${safeKey})` : safeKey;
-              return <option key={safeKey} value={safeKey}>{label}</option>;
+              return <option key={safeKey} value={safeKey} style={{ background: '#1a1f2e', color: '#fff' }}>{label}</option>;
             })}
           </select>
         </div>
@@ -254,7 +396,7 @@ export default function Control() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <button 
                 disabled={!isOnline}
-                onClick={() => handleCommand('start')}
+                onClick={() => setStartModalOpen(true)}
                 style={{
                   padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
                   background: isOnline ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.05)',
