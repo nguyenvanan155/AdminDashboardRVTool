@@ -472,6 +472,22 @@ export default function Control() {
             >
               🌐 Open Proxy Tools
             </button>
+            <button 
+              disabled={!isOnline}
+              onClick={() => handleCommand('sync_full_db')}
+              style={{
+                width: '100%', padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                background: isOnline ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.05)',
+                color: isOnline ? '#a855f7' : 'var(--muted)',
+                border: `1px solid ${isOnline ? 'rgba(168,85,247,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                cursor: isOnline ? 'pointer' : 'not-allowed',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                marginTop: 12
+              }}
+            >
+              📥 Yêu cầu Sync Database (Tài khoản/Nội dung)
+            </button>
+
 
             {cmdFeedback && (
               <div style={{ marginTop: 16, padding: '12px', background: 'rgba(74,222,128,0.1)', color: '#4ade80', borderRadius: 8, textAlign: 'center', fontSize: 13, fontWeight: 600 }}>
