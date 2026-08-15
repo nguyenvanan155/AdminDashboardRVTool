@@ -271,6 +271,7 @@ function StartModal({ safeKey, dispName, targets, onClose, onSent }) {
 export default function Control() {
   const [employees, setEmployees] = useState({});
   const [licenses, setLicenses] = useState({});
+  const [targets, setTargets] = useState({});
   const [nameMap] = useState(loadNameMap());
   const [selectedKey, setSelectedKey] = useState('');
   
@@ -289,7 +290,9 @@ export default function Control() {
   useEffect(() => {
     const empRef = ref(db, 'employees');
     const licRef = ref(db, 'licenses');
+    const tgtRef = ref(db, 'targets');
     onValue(licRef, snap => setLicenses(snap.val() || {}));
+    onValue(tgtRef, snap => setTargets(snap.val() || {}));
     const unsub = onValue(empRef, (snap) => {
       const data = snap.val() || {};
       setEmployees(data);
@@ -340,7 +343,7 @@ export default function Control() {
         <StartModal
           safeKey={selectedKey}
           dispName={licenses[selectedKey]?.note || selectedKey}
-          targets={selectedEmp?.targets || []}
+          targets={targets[selectedKey] || selectedEmp?.targets || []}
           onClose={() => setStartModalOpen(false)}
           onSent={(msg) => { setCmdFeedback(msg); setTimeout(() => setCmdFeedback(''), 6000); }}
         />
