@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { db } from '../firebase';
 
@@ -11,10 +11,10 @@ function loadNameMap() {
 }
 
 function StatusBadge({ status }) {
-  if (status === 'ACTIVE' || status === 'RUNNING')  return <span className="badge online"><div className="dot g" />🟢 Active</span>;
-  if (status === 'PAUSED') return <span className="badge" style={{background:'rgba(234,179,8,0.12)',color:'#eab308'}}><div className="dot y" />⏸️ Paused</span>;
-  if (status === 'IDLE' || status === 'STOPPED') return <span className="badge" style={{background:'rgba(234,179,8,0.12)',color:'#eab308'}}><div className="dot y" />🟡 Idle</span>;
-  return <span className="badge offline"><div className="dot r" />🔴 Offline</span>;
+  if (status === 'ACTIVE' || status === 'RUNNING')  return <span className="badge online"><div className="dot g" />đŸŸ¢ Active</span>;
+  if (status === 'PAUSED') return <span className="badge" style={{background:'rgba(234,179,8,0.12)',color:'#eab308'}}><div className="dot y" />â¸ï¸ Paused</span>;
+  if (status === 'IDLE' || status === 'STOPPED') return <span className="badge" style={{background:'rgba(234,179,8,0.12)',color:'#eab308'}}><div className="dot y" />đŸŸ¡ Idle</span>;
+  return <span className="badge offline"><div className="dot r" />đŸ”´ Offline</span>;
 }
 
 function getRealStatus(emp) {
@@ -24,7 +24,7 @@ function getRealStatus(emp) {
   return emp.status;
 }
 
-/** Gửi lệnh điều khiển lên Firebase /commands/{safeKey} */
+/** Gá»­i lá»‡nh Ä‘iá»u khiá»ƒn lĂªn Firebase /commands/{safeKey} */
 async function sendCommand(safeKey, action, payload = null) {
   const url = `${FIREBASE_URL}/commands/${safeKey}.json?auth=${FIREBASE_SECRET}`;
   await fetch(url, {
@@ -49,7 +49,7 @@ function ProxyModal({ safeKey, dispName, onClose, onSent }) {
     setLoading(true);
     try {
       await sendCommand(safeKey, 'fetch_proxies', { provider, num: Number(num), country });
-      onSent(`⏳ Fetching ${num} proxies via ${provider.toUpperCase()}...`);
+      onSent(`â³ Fetching ${num} proxies via ${provider.toUpperCase()}...`);
       onClose();
     } catch (e) {
       alert('Failed to send command: ' + e.message);
@@ -62,7 +62,7 @@ function ProxyModal({ safeKey, dispName, onClose, onSent }) {
     if (!window.confirm(`Clear ALL proxies on ${dispName || safeKey}?`)) return;
     try {
       await sendCommand(safeKey, 'clear_proxies');
-      onSent('⏳ Clearing proxies...');
+      onSent('â³ Clearing proxies...');
       onClose();
     } catch (e) {
       alert('Failed: ' + e.message);
@@ -81,13 +81,13 @@ function ProxyModal({ safeKey, dispName, onClose, onSent }) {
         boxShadow:'0 24px 48px rgba(0,0,0,0.5)',
       }} onClick={e => e.stopPropagation()}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
-          <h3 style={{margin:0, fontSize:16}}>🌐 Proxy Tools — <span style={{color:'var(--muted,#888)', fontWeight:400}}>{dispName || safeKey}</span></h3>
-          <button onClick={onClose} style={{background:'none', border:'none', color:'var(--muted,#888)', cursor:'pointer', fontSize:18}}>✕</button>
+          <h3 style={{margin:0, fontSize:16}}>đŸŒ Proxy Tools â€” <span style={{color:'var(--muted,#888)', fontWeight:400}}>{dispName || safeKey}</span></h3>
+          <button onClick={onClose} style={{background:'none', border:'none', color:'var(--muted,#888)', cursor:'pointer', fontSize:18}}>âœ•</button>
         </div>
 
         {/* Fetch Section */}
         <div style={{marginBottom:20}}>
-          <div style={{fontSize:13, fontWeight:600, marginBottom:10, color:'#4ade80'}}>📥 Fetch New Proxies</div>
+          <div style={{fontSize:13, fontWeight:600, marginBottom:10, color:'#4ade80'}}>đŸ“¥ Fetch New Proxies</div>
 
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:10}}>
             <div>
@@ -116,7 +116,7 @@ function ProxyModal({ safeKey, dispName, onClose, onSent }) {
             onClick={handleFetch}
             disabled={loading}
             style={{width:'100%', padding:'9px', background: loading ? 'rgba(74,222,128,0.05)' : 'rgba(74,222,128,0.15)', color:'#4ade80', border:'1px solid rgba(74,222,128,0.3)', borderRadius:7, fontSize:13, fontWeight:600, cursor: loading ? 'not-allowed':'pointer'}}>
-            {loading ? '⏳ Sending...' : '⚡ Fetch & Import'}
+            {loading ? 'â³ Sending...' : 'â¡ Fetch & Import'}
           </button>
         </div>
 
@@ -125,7 +125,7 @@ function ProxyModal({ safeKey, dispName, onClose, onSent }) {
 
         {/* Clear Section */}
         <div>
-          <div style={{fontSize:13, fontWeight:600, marginBottom:10, color:'#ef4444'}}>🗑️ Clear Proxies</div>
+          <div style={{fontSize:13, fontWeight:600, marginBottom:10, color:'#ef4444'}}>đŸ—‘ï¸ Clear Proxies</div>
           <button
             onClick={handleClear}
             style={{width:'100%', padding:'9px', background:'rgba(239,68,68,0.1)', color:'#ef4444', border:'1px solid rgba(239,68,68,0.3)', borderRadius:7, fontSize:13, fontWeight:600, cursor:'pointer'}}>
@@ -143,7 +143,7 @@ function ProxyModal({ safeKey, dispName, onClose, onSent }) {
 
 function StartModal({ safeKey, dispName, targets, onClose, onSent }) {
   const allIds = (targets || []).map(t => t.id);
-  const [selected, setSelected] = useState(allIds);
+  const [selected, setSelected] = useState([]);
   const [loading, setLoading] = useState(false);
 
   function toggle(id) {
@@ -161,7 +161,7 @@ function StartModal({ safeKey, dispName, targets, onClose, onSent }) {
       const label = selected.length === allIds.length || selected.length === 0
         ? 'all maps'
         : `${selected.length} map(s)`;
-      onSent(`✅ Start command sent — running ${label}`);
+      onSent(`âœ… Start command sent â€” running ${label}`);
       onClose();
     } catch (e) {
       alert('Failed to send command: ' + e.message);
@@ -187,8 +187,8 @@ function StartModal({ safeKey, dispName, targets, onClose, onSent }) {
 
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 16 }}>▶️ Start Job — <span style={{ color: 'var(--muted,#888)', fontWeight: 400 }}>{dispName || safeKey}</span></h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--muted,#888)', cursor: 'pointer', fontSize: 18 }}>✕</button>
+          <h3 style={{ margin: 0, fontSize: 16 }}>â–¶ï¸ Start Job â€” <span style={{ color: 'var(--muted,#888)', fontWeight: 400 }}>{dispName || safeKey}</span></h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--muted,#888)', cursor: 'pointer', fontSize: 18 }}>âœ•</button>
         </div>
 
         {hasTargets ? (
@@ -212,11 +212,11 @@ function StartModal({ safeKey, dispName, targets, onClose, onSent }) {
             <div style={{ overflowY: 'auto', flex: 1, marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {targets.map(t => {
                 const checked = selected.includes(t.id);
-                const depleted = t.limit_reached || t.contentUnused === 0;
+                const depleted = t.limit_reached;
                 return (
                   <label key={t.id} style={{
                     display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '8px 12px', borderRadius: 7, cursor: depleted ? 'not-allowed' : 'pointer',
+                    padding: '8px 12px', borderRadius: 7, cursor: 'pointer',
                     background: checked ? 'rgba(74,222,128,0.07)' : 'rgba(255,255,255,0.03)',
                     border: `1px solid ${checked ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.07)'}`,
                     opacity: depleted ? 0.45 : 1,
@@ -230,10 +230,10 @@ function StartModal({ safeKey, dispName, targets, onClose, onSent }) {
                         {t.name || `Map #${t.id}`}
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--muted,#888)', marginTop: 2 }}>
-                        {t.country || '—'} &nbsp;·&nbsp;
-                        Limit: {t.daily_limit || 'default'} &nbsp;·&nbsp;
+                        {t.country || 'â€”'} &nbsp;Â·&nbsp;
+                        Limit: {t.daily_limit || 'default'} &nbsp;Â·&nbsp;
                         Unused: <span style={{ color: t.contentUnused > 0 ? '#4ade80' : '#ef4444' }}>{t.contentUnused}</span>
-                        {t.limit_reached && <span style={{ color: '#ef4444', marginLeft: 6 }}>⛔ limit reached</span>}
+                        {t.limit_reached && <span style={{ color: '#ef4444', marginLeft: 6 }}>â›” limit reached</span>}
                       </div>
                     </div>
                   </label>
@@ -243,7 +243,7 @@ function StartModal({ safeKey, dispName, targets, onClose, onSent }) {
           </>
         ) : (
           <div style={{ color: 'var(--muted,#888)', fontSize: 13, marginBottom: 16, padding: '12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
-            ⚠️ No map data from tool — all maps will run. (Restart tool to sync map list.)
+            â ï¸ No map data from tool â€” all maps will run. (Restart tool to sync map list.)
           </div>
         )}
 
@@ -257,7 +257,7 @@ function StartModal({ safeKey, dispName, targets, onClose, onSent }) {
             color: (hasTargets && selected.length === 0) ? 'var(--muted)' : '#4ade80',
             border: '1px solid rgba(74,222,128,0.3)', cursor: loading ? 'not-allowed' : 'pointer',
           }}>
-          {loading ? '⏳ Sending...' : `▶️ Start${hasTargets && selected.length > 0 && selected.length < allIds.length ? ` (${selected.length} maps)` : ' All'}`}
+          {loading ? 'â³ Sending...' : `â–¶ï¸ Start${hasTargets && selected.length > 0 && selected.length < allIds.length ? ` (${selected.length} maps)` : ' All'}`}
         </button>
       </div>
     </div>
@@ -306,7 +306,7 @@ export default function Control() {
     if (!selectedKey) return;
     try {
       await sendCommand(selectedKey, action);
-      setCmdFeedback(`✅ Sent: ${action.toUpperCase()}`);
+      setCmdFeedback(`âœ… Sent: ${action.toUpperCase()}`);
       setTimeout(() => setCmdFeedback(''), 4000);
     } catch (e) {
       alert('Failed to send command: ' + e.message);
@@ -324,7 +324,7 @@ export default function Control() {
 
   return (
     <div>
-      <h1 className="page-title">🎮 Remote Control</h1>
+      <h1 className="page-title">đŸ® Remote Control</h1>
       <p style={{color:'var(--muted)', marginBottom:24, fontSize:14}}>Select a machine to manage its operations and proxy tools.</p>
 
       {proxyModalOpen && selectedKey && (
@@ -386,7 +386,7 @@ export default function Control() {
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Current Map</div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: isOnline ? 'var(--text)' : 'var(--muted)' }}>
-                  {isOnline ? (selectedEmp.currentMap || 'Initializing...') : '—'}
+                  {isOnline ? (selectedEmp.currentMap || 'Initializing...') : 'â€”'}
                 </div>
               </div>
             </div>
@@ -406,7 +406,7 @@ export default function Control() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
                 }}
               >
-                ▶️ Start Job
+                â–¶ï¸ Start Job
               </button>
 
               <button 
@@ -421,7 +421,7 @@ export default function Control() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
                 }}
               >
-                ⏹️ Stop All
+                â¹ï¸ Stop All
               </button>
 
               <button 
@@ -436,7 +436,7 @@ export default function Control() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
                 }}
               >
-                ⏸️ Pause
+                â¸ï¸ Pause
               </button>
 
               <button 
@@ -451,7 +451,7 @@ export default function Control() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
                 }}
               >
-                ⏯️ Resume
+                â¯ï¸ Resume
               </button>
             </div>
 
@@ -467,7 +467,7 @@ export default function Control() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
               }}
             >
-              🌐 Open Proxy Tools
+              đŸŒ Open Proxy Tools
             </button>
 
             {cmdFeedback && (
