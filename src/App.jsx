@@ -1,19 +1,17 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Dashboard from './pages/Dashboard';
-import Employees from './pages/Employees';
+import Staff     from './pages/Staff';
 import Control   from './pages/Control';
 import BoostFalconControl from './pages/BoostFalconControl';
 import Reports   from './pages/Reports';
-import Licenses  from './pages/Licenses';
 import Login     from './pages/Login';
 import './index.css';
 
 const PAGES = [
   { id: 'dashboard', label: 'Dashboard',      icon: '📊' },
-  { id: 'employees', label: 'Employees',      icon: '👥' },
+  { id: 'staff',     label: 'Staff Management', icon: '👥' },
   { id: 'control',   label: 'Remote Control', icon: '🎮' },
   { id: 'nokey-control', label: 'BoostFalcon Control', icon: '🤖' },
-  { id: 'licenses',  label: 'License Keys',   icon: '🔑' },
   { id: 'reports',   label: 'Export Reports', icon: '📥' },
 ];
 
@@ -23,7 +21,6 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    // Check local storage for login state
     const loggedIn = localStorage.getItem('isAdminLoggedIn');
     if (loggedIn === 'true') {
       setIsLoggedIn(true);
@@ -47,7 +44,7 @@ export default function App() {
   return (
     <div className="layout">
       <div className="mobile-header">
-        <button className="hamburger" onClick={() => setIsSidebarOpen(true)}>☰</button>
+        <button className="hamburger" onClick={() => setIsSidebarOpen(true)}>🍔</button>
         <div className="mobile-logo">Admin <span>Dashboard</span></div>
       </div>
       {isSidebarOpen && <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)}></div>}
@@ -83,13 +80,11 @@ export default function App() {
       {/* Main */}
       <main className="main">
         {page === 'dashboard' && <Dashboard />}
-        {page === 'employees' && <Employees />}
+        {page === 'staff'     && <Staff />}
         {page === 'control'   && <Control />}
         {page === 'nokey-control' && <BoostFalconControl />}
-        {page === 'licenses'  && <Licenses />}
         {page === 'reports'   && <Reports />}
       </main>
     </div>
   );
 }
-
