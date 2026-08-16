@@ -846,21 +846,38 @@ export default function Control() {
               <div style={{ fontWeight: 600, marginBottom: 12 }}>Target Maps ({Array.isArray(selectedEmp.dbSnapshot.targets) ? selectedEmp.dbSnapshot.targets.length : 0})</div>
               <div style={{ maxHeight: 300, overflowY: 'auto' }}>
                 <table style={{ width: '100%', fontSize: 13, textAlign: 'left', borderCollapse: 'collapse' }}>
-                  <thead style={{ position: 'sticky', top: 0, background: '#1a1f2e' }}>
-                    <tr>
-                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Map Name</th>
-                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Total</th>
-                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Done</th>
+                  <thead style={{ position: 'sticky', top: 0, background: '#1a1f2e', zIndex: 10 }}>
+                    <tr style={{ color: 'var(--muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      <th style={{ padding: '12px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontWeight: 600 }}>MAP NAME</th>
+                      <th style={{ padding: '12px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontWeight: 600 }}>TOTAL</th>
+                      <th style={{ padding: '12px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontWeight: 600 }}>UNUSED</th>
+                      <th style={{ padding: '12px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontWeight: 600 }}>USED</th>
+                      <th style={{ padding: '12px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontWeight: 600 }}>DONE TODAY</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {(Array.isArray(selectedEmp.dbSnapshot.targets) ? selectedEmp.dbSnapshot.targets : []).map(t => (
-                      <tr key={t.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                        <td style={{ padding: '8px', maxWidth: 150, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={t.name || t.url || `Map #${t.id}`}>{t.name || t.url || `Map #${t.id}`}</td>
-                        <td style={{ padding: '8px' }}>{t.count || t.total || 0}</td>
-                        <td style={{ padding: '8px', color: '#3b82f6' }}>{t.done || t.doneToday || 0}</td>
-                      </tr>
-                    ))}
+                    {(Array.isArray(selectedEmp.dbSnapshot.targets) ? selectedEmp.dbSnapshot.targets : []).map(t => {
+                      const total = t.contentTotal || t.total || t.count || 0;
+                      const unused = t.contentUnused || t.unused || 0;
+                      const used = t.contentUsed || t.used || 0;
+                      const doneToday = t.doneToday || 0;
+                      const dailyLimit = t.daily_limit || 0;
+                      const limitReached = t.limit_reached || (dailyLimit > 0 && doneToday >= dailyLimit);
+
+                      return (
+                        <tr key={t.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                          <td style={{ padding: '12px 8px', maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500, color: '#f8fafc' }} title={t.name || t.url || `Map #${t.id}`}>
+                            {t.name || t.url || `Map #${t.id}`}
+                          </td>
+                          <td style={{ padding: '12px 8px', color: '#e2e8f0' }}>{total}</td>
+                          <td style={{ padding: '12px 8px', color: '#4ade80' }}>{unused}</td>
+                          <td style={{ padding: '12px 8px', color: '#3b82f6' }}>{used}</td>
+                          <td style={{ padding: '12px 8px', color: limitReached ? '#ef4444' : '#e2e8f0' }}>
+                            {doneToday} / {dailyLimit} {limitReached && '(Limit)'}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
