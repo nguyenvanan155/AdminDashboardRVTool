@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { dbNokey } from '../firebase-nokey';
 
@@ -215,7 +215,7 @@ function StartModal({ safeKey, dispName, targets, onClose, onSent }) {
                       <div style={{ fontSize: 11, color: 'var(--muted,#888)', marginTop: 2 }}>
                         {t.country || '—'} &nbsp;·&nbsp;
                         Limit: {t.daily_limit || 'default'} &nbsp;·&nbsp;
-                        Unused: <span style={{ color: t.contentUnused > 0 ? '#4ade80' : '#ef4444' }}>{t.contentUnused || t.unused || 0}</span>
+                        Unused: <span style={{ color: (t.unused ?? t.contentUnused ?? 0) > 0 ? '#4ade80' : '#ef4444' }}>{t.unused ?? t.contentUnused ?? 0}</span>
                         {t.limit_reached && <span style={{ color: '#ef4444', marginLeft: 6 }}>⛔ limit reached</span>}
                       </div>
                     </div>
@@ -307,7 +307,7 @@ export default function BoostFalconControl() {
         <StartModal
           safeKey={selectedKey}
           dispName={selectedKey}
-          targets={selectedEmp?.targets || selectedEmp?.dbSnapshot?.targets || []}
+          targets={selectedEmp?.dbSnapshot?.targets || selectedEmp?.targets || []}
           onClose={() => setStartModalOpen(false)}
           onSent={(msg) => { setCmdFeedback(msg); setTimeout(() => setCmdFeedback(''), 6000); }}
         />
@@ -487,3 +487,4 @@ export default function BoostFalconControl() {
     </div>
   );
 }
+
