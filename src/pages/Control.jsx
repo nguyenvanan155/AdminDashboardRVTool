@@ -743,8 +743,7 @@ export default function Control() {
             </button>
           </div>
 
-          {isOnline && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
               <button 
                 onClick={() => setAddModalOpen(true)}
                 disabled={realStatus !== 'RUNNING'}
@@ -791,7 +790,6 @@ export default function Control() {
                 🔄 Clear Limit
               </button>
             </div>
-          )}
 
           <button 
             onClick={() => setProxyModalOpen(true)}
@@ -828,59 +826,7 @@ export default function Control() {
             </div>
           )}
           
-          {selectedEmp?.dbSnapshot ? (
-            <div style={{ marginTop: 32, padding: 20, background: 'rgba(0,0,0,0.2)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
-              <h3 style={{ margin: '0 0 16px 0', fontSize: 16, color: '#a855f7' }}>📊 Database Snapshot</h3>
-              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 16 }}>
-                Last Synced: {new Date(selectedEmp.dbSnapshot.syncedAt).toLocaleString('en-US')}
-              </div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 8 }}>
-                  <div style={{ fontWeight: 600, marginBottom: 8 }}>Accounts ({selectedEmp.dbSnapshot.accounts.total})</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Unused:</span> <span style={{ color: '#4ade80' }}>{selectedEmp.dbSnapshot.accounts.unused}</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Used/Success:</span> <span style={{ color: '#3b82f6' }}>{selectedEmp.dbSnapshot.accounts.used_success}</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Failed/Dead:</span> <span style={{ color: '#ef4444' }}>{selectedEmp.dbSnapshot.accounts.failed}</span></div>
-                </div>
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 8 }}>
-                  <div style={{ fontWeight: 600, marginBottom: 8 }}>Proxies ({selectedEmp.dbSnapshot.proxies.total})</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Idle:</span> <span style={{ color: '#4ade80' }}>{selectedEmp.dbSnapshot.proxies.idle}</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Used:</span> <span style={{ color: '#3b82f6' }}>{selectedEmp.dbSnapshot.proxies.used}</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Failed:</span> <span style={{ color: '#ef4444' }}>{selectedEmp.dbSnapshot.proxies.failed}</span></div>
-                </div>
-              </div>
 
-              <div style={{ fontWeight: 600, marginBottom: 12 }}>Target Maps ({selectedEmp.dbSnapshot.targets.length})</div>
-              <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-                <table style={{ width: '100%', fontSize: 13, textAlign: 'left', borderCollapse: 'collapse' }}>
-                  <thead style={{ position: 'sticky', top: 0, background: '#1a1f2e' }}>
-                    <tr>
-                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Map Name</th>
-                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Total</th>
-                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Unused</th>
-                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Used</th>
-                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Done Today</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedEmp.dbSnapshot.targets.map(t => (
-                      <tr key={t.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                        <td style={{ padding: '8px', maxWidth: 150, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={t.name || t.url || `Map #${t.id}`}>{t.name || t.url || `Map #${t.id}`}</td>
-                        <td style={{ padding: '8px' }}>{t.total}</td>
-                        <td style={{ padding: '8px', color: '#4ade80' }}>{t.unused}</td>
-                        <td style={{ padding: '8px', color: '#3b82f6' }}>{t.used}</td>
-                        <td style={{ padding: '8px', color: t.limit_reached ? '#ef4444' : 'inherit' }}>{t.doneToday} / {t.daily_limit} {t.limit_reached && '(Limit)'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            <div style={{ marginTop: 32, padding: 20, background: 'rgba(0,0,0,0.2)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', color: 'var(--muted)' }}>
-              No database snapshot available yet. Wait up to 60 seconds for auto-sync...
-            </div>
-          )}
           
         </div>
         </div>
