@@ -1,15 +1,16 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { dbNokey } from '../firebase-nokey';
 
 const FIREBASE_SECRET = 'XeI6LuChzxC8lj7D90MDjbCezCsTfDnAq9cVTQOK';
 const FIREBASE_URL    = 'https://mainrvtool-default-rtdb.asia-southeast1.firebasedatabase.app';
+const TARGET_MACHINE  = 'BOOSTFALCON';
 
 function StatusBadge({ status }) {
-  if (status === 'ACTIVE' || status === 'RUNNING')  return <span className="badge online"><div className="dot g" />?? Active</span>;
-  if (status === 'PAUSED') return <span className="badge" style={{background:'rgba(234,179,8,0.12)',color:'#eab308'}}><div className="dot y" />?? Paused</span>;
-  if (status === 'IDLE' || status === 'STOPPED') return <span className="badge" style={{background:'rgba(234,179,8,0.12)',color:'#eab308'}}><div className="dot y" />?? Idle</span>;
-  return <span className="badge offline"><div className="dot r" />?? Offline</span>;
+  if (status === 'ACTIVE' || status === 'RUNNING')  return <span className="badge online"><div className="dot g" />🟢 Active</span>;
+  if (status === 'PAUSED') return <span className="badge" style={{background:'rgba(234,179,8,0.12)',color:'#eab308'}}><div className="dot y" />⏸️ Paused</span>;
+  if (status === 'IDLE' || status === 'STOPPED') return <span className="badge" style={{background:'rgba(234,179,8,0.12)',color:'#eab308'}}><div className="dot y" />🟡 Idle</span>;
+  return <span className="badge offline"><div className="dot r" />🔴 Offline</span>;
 }
 
 function getRealStatus(emp) {
@@ -39,7 +40,7 @@ function ProxyModal({ safeKey, dispName, onClose, onSent }) {
     setLoading(true);
     try {
       await sendCommand(safeKey, 'fetch_proxies', { provider, num: Number(num), country });
-      onSent(`? Fetching ${num} proxies via ${provider.toUpperCase()}...`);
+      onSent(`⏳ Fetching ${num} proxies via ${provider.toUpperCase()}...`);
       onClose();
     } catch (e) {
       alert('Failed to send command: ' + e.message);
@@ -52,7 +53,7 @@ function ProxyModal({ safeKey, dispName, onClose, onSent }) {
     if (!window.confirm(`Clear ALL proxies on ${dispName || safeKey}?`)) return;
     try {
       await sendCommand(safeKey, 'clear_proxies');
-      onSent('? Clearing proxies...');
+      onSent('⏳ Clearing proxies...');
       onClose();
     } catch (e) {
       alert('Failed: ' + e.message);
@@ -71,13 +72,13 @@ function ProxyModal({ safeKey, dispName, onClose, onSent }) {
         boxShadow:'0 24px 48px rgba(0,0,0,0.5)',
       }} onClick={e => e.stopPropagation()}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
-          <h3 style={{margin:0, fontSize:16}}>?? Proxy Tools � <span style={{color:'var(--muted,#888)', fontWeight:400}}>{dispName || safeKey}</span></h3>
-          <button onClick={onClose} style={{background:'none', border:'none', color:'var(--muted,#888)', cursor:'pointer', fontSize:18}}>?</button>
+          <h3 style={{margin:0, fontSize:16}}>🌐 Proxy Tools — <span style={{color:'var(--muted,#888)', fontWeight:400}}>{dispName || safeKey}</span></h3>
+          <button onClick={onClose} style={{background:'none', border:'none', color:'var(--muted,#888)', cursor:'pointer', fontSize:18}}>✕</button>
         </div>
 
         {/* Fetch Section */}
         <div style={{marginBottom:20}}>
-          <div style={{fontSize:13, fontWeight:600, marginBottom:10, color:'#4ade80'}}>?? Fetch New Proxies</div>
+          <div style={{fontSize:13, fontWeight:600, marginBottom:10, color:'#4ade80'}}>📥 Fetch New Proxies</div>
 
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:10}}>
             <div>
@@ -106,7 +107,7 @@ function ProxyModal({ safeKey, dispName, onClose, onSent }) {
             onClick={handleFetch}
             disabled={loading}
             style={{width:'100%', padding:'9px', background: loading ? 'rgba(74,222,128,0.05)' : 'rgba(74,222,128,0.15)', color:'#4ade80', border:'1px solid rgba(74,222,128,0.3)', borderRadius:7, fontSize:13, fontWeight:600, cursor: loading ? 'not-allowed':'pointer'}}>
-            {loading ? '? Sending...' : '? Fetch & Import'}
+            {loading ? '⏳ Sending...' : '⚡ Fetch & Import'}
           </button>
         </div>
 
@@ -114,7 +115,7 @@ function ProxyModal({ safeKey, dispName, onClose, onSent }) {
 
         {/* Clear Section */}
         <div>
-          <div style={{fontSize:13, fontWeight:600, marginBottom:10, color:'#ef4444'}}>??? Clear Proxies</div>
+          <div style={{fontSize:13, fontWeight:600, marginBottom:10, color:'#ef4444'}}>🗑️ Clear Proxies</div>
           <button
             onClick={handleClear}
             style={{width:'100%', padding:'9px', background:'rgba(239,68,68,0.1)', color:'#ef4444', border:'1px solid rgba(239,68,68,0.3)', borderRadius:7, fontSize:13, fontWeight:600, cursor:'pointer'}}>
@@ -146,7 +147,7 @@ function StartModal({ safeKey, dispName, targets, onClose, onSent }) {
       const label = selected.length === allIds.length || selected.length === 0
         ? 'all maps'
         : `${selected.length} map(s)`;
-      onSent(`? Start command sent � running ${label}`);
+      onSent(`✅ Start command sent — running ${label}`);
       onClose();
     } catch (e) {
       alert('Failed to send command: ' + e.message);
@@ -171,8 +172,8 @@ function StartModal({ safeKey, dispName, targets, onClose, onSent }) {
       }} onClick={e => e.stopPropagation()}>
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 16 }}>?? Start Job � <span style={{ color: 'var(--muted,#888)', fontWeight: 400 }}>{dispName || safeKey}</span></h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--muted,#888)', cursor: 'pointer', fontSize: 18 }}>?</button>
+          <h3 style={{ margin: 0, fontSize: 16 }}>▶️ Start Job — <span style={{ color: 'var(--muted,#888)', fontWeight: 400 }}>{dispName || safeKey}</span></h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--muted,#888)', cursor: 'pointer', fontSize: 18 }}>✕</button>
         </div>
 
         {hasTargets ? (
@@ -212,10 +213,10 @@ function StartModal({ safeKey, dispName, targets, onClose, onSent }) {
                         {t.name || `Map #${t.id}`}
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--muted,#888)', marginTop: 2 }}>
-                        {t.country || '�'} &nbsp;�&nbsp;
-                        Limit: {t.daily_limit || 'default'} &nbsp;�&nbsp;
+                        {t.country || '—'} &nbsp;·&nbsp;
+                        Limit: {t.daily_limit || 'default'} &nbsp;·&nbsp;
                         Unused: <span style={{ color: t.contentUnused > 0 ? '#4ade80' : '#ef4444' }}>{t.contentUnused || t.unused || 0}</span>
-                        {t.limit_reached && <span style={{ color: '#ef4444', marginLeft: 6 }}>? limit reached</span>}
+                        {t.limit_reached && <span style={{ color: '#ef4444', marginLeft: 6 }}>⛔ limit reached</span>}
                       </div>
                     </div>
                   </label>
@@ -225,7 +226,7 @@ function StartModal({ safeKey, dispName, targets, onClose, onSent }) {
           </>
         ) : (
           <div style={{ color: 'var(--muted,#888)', fontSize: 13, marginBottom: 16, padding: '12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
-            ?? No map data from tool � all maps will run. (Restart tool to sync map list.)
+            ⚠️ No map data from tool — all maps will run. (Restart tool to sync map list.)
           </div>
         )}
 
@@ -238,7 +239,7 @@ function StartModal({ safeKey, dispName, targets, onClose, onSent }) {
             color: (hasTargets && selected.length === 0) ? 'var(--muted)' : '#4ade80',
             border: '1px solid rgba(74,222,128,0.3)', cursor: loading ? 'not-allowed' : 'pointer',
           }}>
-          {loading ? '? Sending...' : `?? Start${hasTargets && selected.length > 0 && selected.length < allIds.length ? ` (${selected.length} maps)` : ' All'}`}
+          {loading ? '⏳ Sending...' : `▶️ Start${hasTargets && selected.length > 0 && selected.length < allIds.length ? ` (${selected.length} maps)` : ' All'}`}
         </button>
       </div>
     </div>
@@ -247,7 +248,7 @@ function StartModal({ safeKey, dispName, targets, onClose, onSent }) {
 
 export default function BoostFalconControl() {
   const [employees, setEmployees] = useState({});
-  const [selectedKey, setSelectedKey] = useState('');
+  const selectedKey = TARGET_MACHINE;
   
   const [cmdFeedback, setCmdFeedback] = useState('');
   const [proxyModalOpen, setProxyModalOpen] = useState(false);
@@ -264,18 +265,14 @@ export default function BoostFalconControl() {
     const unsub = onValue(empRef, (snap) => {
       const data = snap.val() || {};
       setEmployees(data);
-      if (!selectedKey && Object.keys(data).length > 0) {
-        setSelectedKey(Object.keys(data)[0]);
-      }
     });
     return () => unsub();
-  }, [selectedKey]);
+  }, []);
 
   async function handleCommand(action) {
-    if (!selectedKey) return;
     try {
       await sendCommand(selectedKey, action);
-      setCmdFeedback(`? Sent: ${action.toUpperCase()}`);
+      setCmdFeedback(`✅ Sent: ${action.toUpperCase()}`);
       setTimeout(() => setCmdFeedback(''), 4000);
     } catch (e) {
       alert('Failed to send command: ' + e.message);
@@ -288,15 +285,16 @@ export default function BoostFalconControl() {
   }
 
   const selectedEmp = employees[selectedKey];
+  // Even if no data yet, treat as offline
   const realStatus = selectedEmp ? getRealStatus(selectedEmp) : 'OFFLINE';
   const isOnline = realStatus !== 'OFFLINE';
 
   return (
     <div>
-      <h1 className="page-title">?? BoostFalcon Control</h1>
+      <h1 className="page-title">🤖 BoostFalcon Control</h1>
       <p style={{color:'var(--muted)', marginBottom:24, fontSize:14}}>Manage your NoKey Autoseller tool connected via BoostFalcon Firebase.</p>
 
-      {proxyModalOpen && selectedKey && (
+      {proxyModalOpen && (
         <ProxyModal
           safeKey={selectedKey}
           dispName={selectedKey}
@@ -305,7 +303,7 @@ export default function BoostFalconControl() {
         />
       )}
 
-      {startModalOpen && selectedKey && (
+      {startModalOpen && (
         <StartModal
           safeKey={selectedKey}
           dispName={selectedKey}
@@ -317,205 +315,175 @@ export default function BoostFalconControl() {
 
       <div className="card" style={{ maxWidth: 800, margin: '0 auto', padding: 24 }}>
         
-        <div style={{ marginBottom: 24 }}>
-          <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: 'var(--muted)', fontWeight: 600 }}>Select Machine</label>
-          <select 
-            value={selectedKey} 
-            onChange={(e) => setSelectedKey(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              borderRadius: 8,
-              border: '1px solid rgba(255,255,255,0.15)',
-              background: 'rgba(255,255,255,0.05)',
-              color: 'var(--text)',
-              fontSize: 15,
-              fontWeight: 500,
-              cursor: 'pointer'
-            }}
-          >
-            <option value="" disabled>-- Select an employee --</option>
-            {Object.keys(employees).map((safeKey) => {
-              return <option key={safeKey} value={safeKey} style={{ background: '#1a1f2e', color: '#fff' }}>{safeKey}</option>;
-            })}
-          </select>
-        </div>
-
-        {selectedEmp ? (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-              <div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Current Status</div>
-                <StatusBadge status={realStatus} />
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Current Map</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: isOnline ? 'var(--text)' : 'var(--muted)' }}>
-                  {isOnline ? (selectedEmp.currentMap || 'Initializing...') : '�'}
-                </div>
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Target Machine</div>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>{selectedKey}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Current Status</div>
+              <StatusBadge status={realStatus} />
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Current Map</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: isOnline ? 'var(--text)' : 'var(--muted)' }}>
+                {isOnline ? (selectedEmp?.currentMap || 'Initializing...') : '—'}
               </div>
             </div>
+          </div>
 
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Operations</div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <button 
-                disabled={!isOnline}
-                onClick={() => setStartModalOpen(true)}
-                style={{
-                  padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
-                  background: isOnline ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.05)',
-                  color: isOnline ? '#4ade80' : 'var(--muted)',
-                  border: `1px solid ${isOnline ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                  cursor: isOnline ? 'pointer' : 'not-allowed',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
-                }}
-              >
-                ?? Start Job
-              </button>
-
-              <button 
-                disabled={!isOnline}
-                onClick={() => handleCommand('stop')}
-                style={{
-                  padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
-                  background: isOnline ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.05)',
-                  color: isOnline ? '#ef4444' : 'var(--muted)',
-                  border: `1px solid ${isOnline ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                  cursor: isOnline ? 'pointer' : 'not-allowed',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
-                }}
-              >
-                ?? Stop All
-              </button>
-
-              <button 
-                disabled={!isOnline}
-                onClick={() => handleCommand('pause')}
-                style={{
-                  padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
-                  background: isOnline ? 'rgba(234,179,8,0.15)' : 'rgba(255,255,255,0.05)',
-                  color: isOnline ? '#eab308' : 'var(--muted)',
-                  border: `1px solid ${isOnline ? 'rgba(234,179,8,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                  cursor: isOnline ? 'pointer' : 'not-allowed',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
-                }}
-              >
-                ?? Pause
-              </button>
-
-              <button 
-                disabled={!isOnline}
-                onClick={() => handleCommand('resume')}
-                style={{
-                  padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
-                  background: isOnline ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.05)',
-                  color: isOnline ? '#3b82f6' : 'var(--muted)',
-                  border: `1px solid ${isOnline ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                  cursor: isOnline ? 'pointer' : 'not-allowed',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
-                }}
-              >
-                ?? Resume
-              </button>
-            </div>
-
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Operations</div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
             <button 
-              disabled={!isOnline}
-              onClick={() => setProxyModalOpen(true)}
+              onClick={() => setStartModalOpen(true)}
               style={{
-                width: '100%', padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
-                background: isOnline ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.05)',
-                color: isOnline ? 'var(--text)' : 'var(--muted)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                cursor: isOnline ? 'pointer' : 'not-allowed',
+                padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                background: 'rgba(74,222,128,0.15)',
+                color: '#4ade80',
+                border: `1px solid rgba(74,222,128,0.3)`,
+                cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
               }}
             >
-              ?? Open Proxy Tools
+              ▶️ Start Job
             </button>
-            
+
             <button 
-              disabled={!isOnline}
-              onClick={() => handleCommand('sync_full_db')}
+              onClick={() => handleCommand('stop')}
               style={{
-                width: '100%', padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
-                background: isOnline ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.05)',
-                color: isOnline ? '#a855f7' : 'var(--muted)',
-                border: `1px solid ${isOnline ? 'rgba(168,85,247,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                cursor: isOnline ? 'pointer' : 'not-allowed',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                marginTop: 12
+                padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                background: 'rgba(239,68,68,0.1)',
+                color: '#ef4444',
+                border: `1px solid rgba(239,68,68,0.3)`,
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
               }}
             >
-              ?? Sync Database from Tool
+              ⏹️ Stop All
             </button>
 
-            {cmdFeedback && (
-              <div style={{ marginTop: 16, padding: '12px', background: 'rgba(74,222,128,0.1)', color: '#4ade80', borderRadius: 8, textAlign: 'center', fontSize: 13, fontWeight: 600 }}>
-                {cmdFeedback}
-              </div>
-            )}
-            
-            {selectedEmp.dbSnapshot && (
-              <div style={{ marginTop: 32, padding: 20, background: 'rgba(0,0,0,0.2)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
-                <h3 style={{ margin: '0 0 16px 0', fontSize: 16, color: '#a855f7' }}>?? Database Snapshot</h3>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 16 }}>
-                  Last Synced: {new Date(selectedEmp.dbSnapshot.syncedAt).toLocaleString('en-US')}
-                </div>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 8 }}>
-                    <div style={{ fontWeight: 600, marginBottom: 8 }}>Accounts ({selectedEmp.dbSnapshot.accounts.total})</div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Unused:</span> <span style={{ color: '#4ade80' }}>{selectedEmp.dbSnapshot.accounts.unused}</span></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Used/Success:</span> <span style={{ color: '#3b82f6' }}>{selectedEmp.dbSnapshot.accounts.used_success}</span></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Failed/Dead:</span> <span style={{ color: '#ef4444' }}>{selectedEmp.dbSnapshot.accounts.failed}</span></div>
-                  </div>
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 8 }}>
-                    <div style={{ fontWeight: 600, marginBottom: 8 }}>Proxies ({selectedEmp.dbSnapshot.proxies.total})</div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Idle:</span> <span style={{ color: '#4ade80' }}>{selectedEmp.dbSnapshot.proxies.idle}</span></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Used:</span> <span style={{ color: '#3b82f6' }}>{selectedEmp.dbSnapshot.proxies.used}</span></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Failed:</span> <span style={{ color: '#ef4444' }}>{selectedEmp.dbSnapshot.proxies.failed}</span></div>
-                  </div>
-                </div>
+            <button 
+              onClick={() => handleCommand('pause')}
+              style={{
+                padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                background: 'rgba(234,179,8,0.15)',
+                color: '#eab308',
+                border: `1px solid rgba(234,179,8,0.3)`,
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+              }}
+            >
+              ⏸️ Pause
+            </button>
 
-                <div style={{ fontWeight: 600, marginBottom: 12 }}>Target Maps ({selectedEmp.dbSnapshot.targets.length})</div>
-                <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-                  <table style={{ width: '100%', fontSize: 13, textAlign: 'left', borderCollapse: 'collapse' }}>
-                    <thead style={{ position: 'sticky', top: 0, background: '#1a1f2e' }}>
-                      <tr>
-                        <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Map Name</th>
-                        <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Total</th>
-                        <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Unused</th>
-                        <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Used</th>
-                        <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Done Today</th>
+            <button 
+              onClick={() => handleCommand('resume')}
+              style={{
+                padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                background: 'rgba(59,130,246,0.15)',
+                color: '#3b82f6',
+                border: `1px solid rgba(59,130,246,0.3)`,
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+              }}
+            >
+              ⏯️ Resume
+            </button>
+          </div>
+
+          <button 
+            onClick={() => setProxyModalOpen(true)}
+            style={{
+              width: '100%', padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+              background: 'rgba(255,255,255,0.1)',
+              color: 'var(--text)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+            }}
+          >
+            🌐 Open Proxy Tools
+          </button>
+          
+          <button 
+            onClick={() => handleCommand('sync_full_db')}
+            style={{
+              width: '100%', padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+              background: 'rgba(168,85,247,0.15)',
+              color: '#a855f7',
+              border: `1px solid rgba(168,85,247,0.3)`,
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              marginTop: 12
+            }}
+          >
+            📥 Force Sync Now (Auto-syncs 60s)
+          </button>
+
+          {cmdFeedback && (
+            <div style={{ marginTop: 16, padding: '12px', background: 'rgba(74,222,128,0.1)', color: '#4ade80', borderRadius: 8, textAlign: 'center', fontSize: 13, fontWeight: 600 }}>
+              {cmdFeedback}
+            </div>
+          )}
+          
+          {selectedEmp?.dbSnapshot ? (
+            <div style={{ marginTop: 32, padding: 20, background: 'rgba(0,0,0,0.2)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: 16, color: '#a855f7' }}>📊 Database Snapshot</h3>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 16 }}>
+                Last Synced: {new Date(selectedEmp.dbSnapshot.syncedAt).toLocaleString('en-US')}
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 8 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 8 }}>Accounts ({selectedEmp.dbSnapshot.accounts.total})</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Unused:</span> <span style={{ color: '#4ade80' }}>{selectedEmp.dbSnapshot.accounts.unused}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Used/Success:</span> <span style={{ color: '#3b82f6' }}>{selectedEmp.dbSnapshot.accounts.used_success}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Failed/Dead:</span> <span style={{ color: '#ef4444' }}>{selectedEmp.dbSnapshot.accounts.failed}</span></div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 8 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 8 }}>Proxies ({selectedEmp.dbSnapshot.proxies.total})</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Idle:</span> <span style={{ color: '#4ade80' }}>{selectedEmp.dbSnapshot.proxies.idle}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Used:</span> <span style={{ color: '#3b82f6' }}>{selectedEmp.dbSnapshot.proxies.used}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Failed:</span> <span style={{ color: '#ef4444' }}>{selectedEmp.dbSnapshot.proxies.failed}</span></div>
+                </div>
+              </div>
+
+              <div style={{ fontWeight: 600, marginBottom: 12 }}>Target Maps ({selectedEmp.dbSnapshot.targets.length})</div>
+              <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                <table style={{ width: '100%', fontSize: 13, textAlign: 'left', borderCollapse: 'collapse' }}>
+                  <thead style={{ position: 'sticky', top: 0, background: '#1a1f2e' }}>
+                    <tr>
+                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Map Name</th>
+                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Total</th>
+                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Unused</th>
+                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Used</th>
+                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Done Today</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedEmp.dbSnapshot.targets.map(t => (
+                      <tr key={t.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ padding: '8px', maxWidth: 150, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={t.name || t.url || `Map #${t.id}`}>{t.name || t.url || `Map #${t.id}`}</td>
+                        <td style={{ padding: '8px' }}>{t.total}</td>
+                        <td style={{ padding: '8px', color: '#4ade80' }}>{t.unused}</td>
+                        <td style={{ padding: '8px', color: '#3b82f6' }}>{t.used}</td>
+                        <td style={{ padding: '8px', color: t.limit_reached ? '#ef4444' : 'inherit' }}>{t.doneToday} / {t.daily_limit} {t.limit_reached && '(Limit)'}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {selectedEmp.dbSnapshot.targets.map(t => (
-                        <tr key={t.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                          <td style={{ padding: '8px', maxWidth: 150, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={t.name || t.url || `Map #${t.id}`}>{t.name || t.url || `Map #${t.id}`}</td>
-                          <td style={{ padding: '8px' }}>{t.total}</td>
-                          <td style={{ padding: '8px', color: '#4ade80' }}>{t.unused}</td>
-                          <td style={{ padding: '8px', color: '#3b82f6' }}>{t.used}</td>
-                          <td style={{ padding: '8px', color: t.limit_reached ? '#ef4444' : 'inherit' }}>{t.doneToday} / {t.daily_limit} {t.limit_reached && '(Limit)'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            )}
-            
-          </div>
-        ) : (
-          <div className="empty" style={{ padding: '40px 0' }}>
-            No machine selected or available.
-          </div>
-        )}
-
+            </div>
+          ) : (
+            <div style={{ marginTop: 32, padding: 20, background: 'rgba(0,0,0,0.2)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', color: 'var(--muted)' }}>
+              No database snapshot available yet. Wait up to 60 seconds for auto-sync...
+            </div>
+          )}
+          
+        </div>
       </div>
     </div>
   );
 }
-
