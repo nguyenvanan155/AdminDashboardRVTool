@@ -439,6 +439,104 @@ function StopTargetModal({ safeKey, dispName, activeMaps, fallbackTargets, onClo
 }
 
 
+
+function ResetLimitModal({ safeKey, dispName, targets, onClose, onSent }) {
+  const [selectedMapId, setSelectedMapId] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+
+  // Targets that have reached limit
+  const limitedTargets = (targets || []).filter(t => t.limit_reached || (t.unused ?? t.contentUnused ?? 0) <= 0);
+  // Other targets
+  const otherTargets = (targets || []).filter(t => !t.limit_reached && (t.unused ?? t.contentUnused ?? 0) > 0);
+
+  async function handleReset(targetId) {
+    if (loading) return;
+    setLoading(true);
+    try {
+      await sendCommand(safeKey, 'reset_limit', targetId ? { targetId } : {});
+      onSent(targetId ? `✅ Reset limit for map ID ${targetId}` : `✅ Reset limits for ALL maps`);
+      onClose();
+    } catch (e) {
+      alert('Failed to send command: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }} onClick={onClose}>
+      <div style={{
+        background: 'var(--surface,#1a1f2e)', border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 12, padding: 28, width: 480, maxWidth: '92vw', maxHeight: '85vh',
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
+      }} onClick={e => e.stopPropagation()}>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: 16 }}>🔄 Clear Daily Limits — <span style={{ color: 'var(--muted,#888)', fontWeight: 400 }}>{dispName || safeKey}</span></h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--muted,#888)', cursor: 'pointer', fontSize: 18 }}>✕</button>
+        </div>
+
+        <div style={{ marginBottom: 16, flex: 1, overflowY: 'auto' }}>
+          <label style={{ fontSize: 13, color: 'var(--muted)', display: 'block', marginBottom: 8 }}>Select map to clear limit:</label>
+          <select 
+            value={selectedMapId} 
+            onChange={e => setSelectedMapId(e.target.value)}
+            style={{ 
+              width: '100%', padding: '10px', borderRadius: 8, 
+              background: 'rgba(255,255,255,0.05)', color: 'var(--text)', 
+              border: '1px solid rgba(255,255,255,0.1)', fontSize: 14, marginBottom: 16
+            }}
+          >
+            <option value="">-- Choose a Map --</option>
+            {limitedTargets.length > 0 && <optgroup label="⚠️ Limit Reached">
+              {limitedTargets.map(t => (
+                <option key={t.id} value={t.id}>{t.name || `Map #${t.id}`} (Limit: {t.daily_limit || 'default'})</option>
+              ))}
+            </optgroup>}
+            {otherTargets.length > 0 && <optgroup label="✅ Normal Maps">
+              {otherTargets.map(t => (
+                <option key={t.id} value={t.id}>{t.name || `Map #${t.id}`} (Unused: {t.unused ?? t.contentUnused ?? 0})</option>
+              ))}
+            </optgroup>}
+          </select>
+          
+          <button
+            onClick={() => handleReset(selectedMapId)}
+            disabled={loading || !selectedMapId}
+            style={{
+              width: '100%', padding: '11px', borderRadius: 8, fontSize: 14, fontWeight: 600, marginBottom: 12,
+              background: (loading || !selectedMapId) ? 'rgba(74,222,128,0.05)' : 'rgba(74,222,128,0.15)',
+              color: !selectedMapId ? 'var(--muted)' : '#4ade80',
+              border: '1px solid rgba(74,222,128,0.3)', cursor: loading ? 'not-allowed' : 'pointer',
+            }}>
+            {loading ? '⏳ Sending...' : '🔄 Clear Limit for Selected Map'}
+          </button>
+          
+          <div style={{ textAlign: 'center', margin: '10px 0', color: 'var(--muted)', fontSize: 12 }}>OR</div>
+
+          <button
+            onClick={() => handleReset('')}
+            disabled={loading}
+            style={{
+              width: '100%', padding: '11px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+              background: loading ? 'rgba(239,68,68,0.05)' : 'rgba(239,68,68,0.15)',
+              color: '#ef4444',
+              border: '1px solid rgba(239,68,68,0.3)', cursor: loading ? 'not-allowed' : 'pointer',
+            }}>
+            {loading ? '⏳ Sending...' : '💥 Clear ALL Limits (Reset All)'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export default function BoostFalconControl() {
   const [employees, setEmployees] = useState({});
   const selectedKey = TARGET_MACHINE;
@@ -448,6 +546,7 @@ export default function BoostFalconControl() {
     const [startModalOpen, setStartModalOpen] = React.useState(false);
   const [addModalOpen, setAddModalOpen] = React.useState(false);
   const [stopModalOpen, setStopModalOpen] = React.useState(false);
+  const [resetLimitModalOpen, setResetLimitModalOpen] = React.useState(false);
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -504,6 +603,16 @@ export default function BoostFalconControl() {
           dispName={selectedKey}
           targets={selectedEmp?.dbSnapshot?.targets || selectedEmp?.targets || []}
           onClose={() => setAddModalOpen(false)}
+          onSent={(msg) => { setCmdFeedback(msg); setTimeout(() => setCmdFeedback(''), 6000); }}
+        />
+      )}
+
+      {resetLimitModalOpen && (
+        <ResetLimitModal
+          safeKey={selectedKey}
+          dispName={selectedKey}
+          targets={selectedEmp?.dbSnapshot?.targets || selectedEmp?.targets || []}
+          onClose={() => setResetLimitModalOpen(false)}
           onSent={(msg) => { setCmdFeedback(msg); setTimeout(() => setCmdFeedback(''), 6000); }}
         />
       )}
@@ -609,34 +718,52 @@ export default function BoostFalconControl() {
             </button>
           </div>
 
-          {isOnline && realStatus === 'RUNNING' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+          {isOnline && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
               <button 
                 onClick={() => setAddModalOpen(true)}
+                disabled={realStatus !== 'RUNNING'}
                 style={{
-                  padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
-                  background: 'rgba(74,222,128,0.15)',
-                  color: '#4ade80',
-                  border: `1px solid rgba(74,222,128,0.3)`,
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                  padding: '14px 4px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                  background: realStatus === 'RUNNING' ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.05)',
+                  color: realStatus === 'RUNNING' ? '#4ade80' : 'var(--muted)',
+                  border: `1px solid ${realStatus === 'RUNNING' ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                  cursor: realStatus === 'RUNNING' ? 'pointer' : 'not-allowed',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  opacity: realStatus === 'RUNNING' ? 1 : 0.5
                 }}
               >
-                ➕ Add More Maps
+                ➕ Add Maps
               </button>
 
               <button 
                 onClick={() => setStopModalOpen(true)}
+                disabled={realStatus !== 'RUNNING'}
                 style={{
-                  padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
-                  background: 'rgba(239,68,68,0.15)',
-                  color: '#ef4444',
-                  border: `1px solid rgba(239,68,68,0.3)`,
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                  padding: '14px 4px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                  background: realStatus === 'RUNNING' ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)',
+                  color: realStatus === 'RUNNING' ? '#ef4444' : 'var(--muted)',
+                  border: `1px solid ${realStatus === 'RUNNING' ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                  cursor: realStatus === 'RUNNING' ? 'pointer' : 'not-allowed',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  opacity: realStatus === 'RUNNING' ? 1 : 0.5
                 }}
               >
-                ⛔ Stop One Map
+                ⛔ Stop Map
+              </button>
+
+              <button 
+                onClick={() => setResetLimitModalOpen(true)}
+                style={{
+                  padding: '14px 4px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                  background: 'rgba(56,189,248,0.15)',
+                  color: '#38bdf8',
+                  border: '1px solid rgba(56,189,248,0.3)',
+                  cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                }}
+              >
+                🔄 Clear Limit
               </button>
             </div>
           )}
