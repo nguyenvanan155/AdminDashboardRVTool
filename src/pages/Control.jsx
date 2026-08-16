@@ -15,7 +15,7 @@ function StatusBadge({ status }) {
 function getRealStatus(emp) {
   if (!emp) return 'OFFLINE';
   if (emp.status === 'OFFLINE') return 'OFFLINE';
-  if (!emp.lastSeen || Date.now() - emp.lastSeen > 180000) return 'OFFLINE';
+  if (!emp.lastSeen || Date.now() - emp.lastSeen > 60000) return 'OFFLINE';
   return emp.status;
 }
 
@@ -819,6 +819,57 @@ export default function Control() {
           >
             📥 Force Sync Now (Auto-syncs 60s)
           </button>
+
+
+          {selectedEmp?.dbSnapshot && selectedEmp.dbSnapshot.targets ? (
+            <div style={{ marginTop: 32, padding: 20, background: 'rgba(0,0,0,0.2)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: 16, color: '#a855f7' }}>?? Database Snapshot</h3>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 16 }}>
+                Last Synced: {new Date(selectedEmp.lastSeen || Date.now()).toLocaleString('en-US')}
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 8 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 8 }}>Accounts ({Array.isArray(selectedEmp.dbSnapshot.accounts) ? selectedEmp.dbSnapshot.accounts.length : 0})</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Unused:</span> <span style={{ color: '#4ade80' }}>{Array.isArray(selectedEmp.dbSnapshot.accounts) ? selectedEmp.dbSnapshot.accounts.filter(a => a.status === 'UNUSED').length : 0}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Used/Success:</span> <span style={{ color: '#3b82f6' }}>{Array.isArray(selectedEmp.dbSnapshot.accounts) ? selectedEmp.dbSnapshot.accounts.filter(a => ['USED_SUCCESS', 'DONE', 'NO_INCREASE'].includes(a.status)).length : 0}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Failed/Dead:</span> <span style={{ color: '#ef4444' }}>{Array.isArray(selectedEmp.dbSnapshot.accounts) ? selectedEmp.dbSnapshot.accounts.filter(a => ['FAILED', 'DEAD', 'BANNED', 'WRONG_PASSWORD', 'LOGIN_FAILED', 'NO_ACCOUNT', 'CHECKPOINT'].includes(a.status)).length : 0}</span></div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 8 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 8 }}>Proxies ({Array.isArray(selectedEmp.dbSnapshot.proxies) ? selectedEmp.dbSnapshot.proxies.length : 0})</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Idle:</span> <span style={{ color: '#4ade80' }}>{Array.isArray(selectedEmp.dbSnapshot.proxies) ? selectedEmp.dbSnapshot.proxies.filter(p => p.status === 'IDLE').length : 0}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Used:</span> <span style={{ color: '#3b82f6' }}>{Array.isArray(selectedEmp.dbSnapshot.proxies) ? selectedEmp.dbSnapshot.proxies.filter(p => p.status === 'USED').length : 0}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span>Failed:</span> <span style={{ color: '#ef4444' }}>{Array.isArray(selectedEmp.dbSnapshot.proxies) ? selectedEmp.dbSnapshot.proxies.filter(p => p.status === 'FAILED' || p.status === 'DEAD').length : 0}</span></div>
+                </div>
+              </div>
+
+              <div style={{ fontWeight: 600, marginBottom: 12 }}>Target Maps ({Array.isArray(selectedEmp.dbSnapshot.targets) ? selectedEmp.dbSnapshot.targets.length : 0})</div>
+              <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                <table style={{ width: '100%', fontSize: 13, textAlign: 'left', borderCollapse: 'collapse' }}>
+                  <thead style={{ position: 'sticky', top: 0, background: '#1a1f2e' }}>
+                    <tr>
+                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Map Name</th>
+                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Total</th>
+                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Done</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(Array.isArray(selectedEmp.dbSnapshot.targets) ? selectedEmp.dbSnapshot.targets : []).map(t => (
+                      <tr key={t.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ padding: '8px', maxWidth: 150, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={t.name || t.url || `Map #${t.id}`}>{t.name || t.url || `Map #${t.id}`}</td>
+                        <td style={{ padding: '8px' }}>{t.count || t.total || 0}</td>
+                        <td style={{ padding: '8px', color: '#3b82f6' }}>{t.done || t.doneToday || 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div style={{ marginTop: 32, padding: 20, background: 'rgba(0,0,0,0.2)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', color: 'var(--muted)' }}>
+              No database snapshot available yet. Click "Force Sync Now" to fetch data.
+            </div>
+          )}
 
           {cmdFeedback && (
             <div style={{ marginTop: 16, padding: '12px', background: 'rgba(74,222,128,0.1)', color: '#4ade80', borderRadius: 8, textAlign: 'center', fontSize: 13, fontWeight: 600 }}>
