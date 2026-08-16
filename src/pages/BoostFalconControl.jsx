@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { dbNokey } from '../firebase-nokey';
 
@@ -246,13 +246,208 @@ function StartModal({ safeKey, dispName, targets, onClose, onSent }) {
   );
 }
 
+
+function AddTargetsModal({ safeKey, dispName, targets, onClose, onSent }) {
+  const allIds = (targets || []).filter(t => (t.unused ?? t.contentUnused ?? 0) > 0 && !t.limit_reached).map(t => t.id);
+  const [selected, setSelected] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+
+  function toggle(id) {
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+
+  async function handleAdd() {
+    if (loading || selected.length === 0) return;
+    setLoading(true);
+    try {
+      await sendCommand(safeKey, 'add_targets', { selectedTargetIds: selected });
+      onSent(`✅ Add command sent — added ${selected.length} map(s)`);
+      onClose();
+    } catch (e) {
+      alert('Failed to send command: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const hasTargets = targets && targets.length > 0;
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }} onClick={onClose}>
+      <div style={{
+        background: 'var(--surface,#1a1f2e)', border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 12, padding: 28, width: 480, maxWidth: '92vw', maxHeight: '80vh',
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
+      }} onClick={e => e.stopPropagation()}>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: 16 }}>➕ Add More Maps — <span style={{ color: 'var(--muted,#888)', fontWeight: 400 }}>{dispName || safeKey}</span></h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--muted,#888)', cursor: 'pointer', fontSize: 18 }}>✕</button>
+        </div>
+
+        {hasTargets ? (
+          <>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+              <button onClick={() => setSelected(allIds)}
+                style={{ fontSize: 12, padding: '4px 10px', borderRadius: 5, background: 'rgba(74,222,128,0.12)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.25)', cursor: 'pointer' }}>
+                Select All Valid
+              </button>
+              <button onClick={() => setSelected([])}
+                style={{ fontSize: 12, padding: '4px 10px', borderRadius: 5, background: 'rgba(255,255,255,0.06)', color: 'var(--muted,#888)', border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer' }}>
+                Deselect All
+              </button>
+              <span style={{ fontSize: 12, color: 'var(--muted,#888)', alignSelf: 'center', marginLeft: 'auto' }}>
+                {selected.length}/{allIds.length} selected
+              </span>
+            </div>
+
+            <div style={{ overflowY: 'auto', flex: 1, marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {targets.map(t => {
+                const depleted = t.limit_reached || (t.unused ?? t.contentUnused ?? 0) <= 0;
+                const checked = selected.includes(t.id);
+                return (
+                  <label key={t.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '8px 12px', borderRadius: 7, cursor: depleted ? 'not-allowed' : 'pointer',
+                    background: checked ? 'rgba(74,222,128,0.07)' : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${checked ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.07)'}`,
+                    opacity: depleted ? 0.45 : 1,
+                    transition: 'all 0.15s',
+                  }}>
+                    <input type="checkbox" checked={checked} disabled={depleted}
+                      onChange={() => !depleted && toggle(t.id)}
+                      style={{ width: 15, height: 15, accentColor: '#4ade80', cursor: depleted ? 'not-allowed' : 'pointer' }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {t.name || `Map #${t.id}`}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--muted,#888)', marginTop: 2 }}>
+                        {t.country || '—'} &nbsp;·&nbsp;
+                        Limit: {t.daily_limit || 'default'} &nbsp;·&nbsp;
+                        Unused: <span style={{ color: (t.unused ?? t.contentUnused ?? 0) > 0 ? '#4ade80' : '#ef4444' }}>{t.unused ?? t.contentUnused ?? 0}</span>
+                        {t.limit_reached && <span style={{ color: '#ef4444', marginLeft: 6 }}>⛔ limit reached</span>}
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <div style={{ color: 'var(--muted,#888)', fontSize: 13, marginBottom: 16, padding: '12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
+            ⚠️ No map data from tool.
+          </div>
+        )}
+
+        <button
+          onClick={handleAdd}
+          disabled={loading || selected.length === 0}
+          style={{
+            width: '100%', padding: '11px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+            background: (loading || selected.length === 0) ? 'rgba(74,222,128,0.05)' : 'rgba(74,222,128,0.15)',
+            color: selected.length === 0 ? 'var(--muted)' : '#4ade80',
+            border: '1px solid rgba(74,222,128,0.3)', cursor: loading ? 'not-allowed' : 'pointer',
+          }}>
+          {loading ? '⏳ Sending...' : `➕ Add ${selected.length} map(s)`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function StopTargetModal({ safeKey, dispName, activeMaps, fallbackTargets, onClose, onSent }) {
+  const [selectedMapId, setSelectedMapId] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+
+  // Use activeMaps from heartbeat if available, otherwise use fallback
+  const mapsToDisplay = (activeMaps && activeMaps.length > 0) ? activeMaps : (fallbackTargets || []);
+
+  async function handleStop() {
+    if (loading || !selectedMapId) return;
+    setLoading(true);
+    try {
+      await sendCommand(safeKey, 'stop_target', { targetId: selectedMapId });
+      onSent(`✅ Stop command sent for map ID ${selectedMapId}`);
+      onClose();
+    } catch (e) {
+      alert('Failed to send command: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }} onClick={onClose}>
+      <div style={{
+        background: 'var(--surface,#1a1f2e)', border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 12, padding: 28, width: 480, maxWidth: '92vw',
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
+      }} onClick={e => e.stopPropagation()}>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: 16 }}>⛔ Stop One Map — <span style={{ color: 'var(--muted,#888)', fontWeight: 400 }}>{dispName || safeKey}</span></h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--muted,#888)', cursor: 'pointer', fontSize: 18 }}>✕</button>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 13, color: 'var(--muted)', display: 'block', marginBottom: 8 }}>Select map to stop:</label>
+          <select 
+            value={selectedMapId} 
+            onChange={e => setSelectedMapId(e.target.value)}
+            style={{ 
+              width: '100%', padding: '10px', borderRadius: 8, 
+              background: 'rgba(255,255,255,0.05)', color: 'var(--text)', 
+              border: '1px solid rgba(255,255,255,0.1)', fontSize: 14 
+            }}
+          >
+            <option value="">-- Choose a Map --</option>
+            {mapsToDisplay.map(t => (
+              <option key={t.id} value={t.id}>{t.name || `Map #${t.id}`}</option>
+            ))}
+          </select>
+          {(!activeMaps || activeMaps.length === 0) && (
+            <div style={{ fontSize: 11, color: '#eab308', marginTop: 8 }}>
+              ⚠️ Active maps list not received from tool. Displaying all maps. Stopping a map not in queue has no effect.
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={handleStop}
+          disabled={loading || !selectedMapId}
+          style={{
+            width: '100%', padding: '11px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+            background: (loading || !selectedMapId) ? 'rgba(239,68,68,0.05)' : 'rgba(239,68,68,0.15)',
+            color: !selectedMapId ? 'var(--muted)' : '#ef4444',
+            border: '1px solid rgba(239,68,68,0.3)', cursor: loading ? 'not-allowed' : 'pointer',
+          }}>
+          {loading ? '⏳ Sending...' : '⛔ Stop Selected Map'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
 export default function BoostFalconControl() {
   const [employees, setEmployees] = useState({});
   const selectedKey = TARGET_MACHINE;
   
   const [cmdFeedback, setCmdFeedback] = useState('');
   const [proxyModalOpen, setProxyModalOpen] = useState(false);
-  const [startModalOpen, setStartModalOpen] = useState(false);
+    const [startModalOpen, setStartModalOpen] = React.useState(false);
+  const [addModalOpen, setAddModalOpen] = React.useState(false);
+  const [stopModalOpen, setStopModalOpen] = React.useState(false);
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -300,6 +495,27 @@ export default function BoostFalconControl() {
           dispName={selectedKey}
           onClose={() => setProxyModalOpen(false)}
           onSent={onProxySent}
+        />
+      )}
+
+      {addModalOpen && (
+        <AddTargetsModal
+          safeKey={selectedKey}
+          dispName={selectedKey}
+          targets={selectedEmp?.dbSnapshot?.targets || selectedEmp?.targets || []}
+          onClose={() => setAddModalOpen(false)}
+          onSent={(msg) => { setCmdFeedback(msg); setTimeout(() => setCmdFeedback(''), 6000); }}
+        />
+      )}
+
+      {stopModalOpen && (
+        <StopTargetModal
+          safeKey={selectedKey}
+          dispName={selectedKey}
+          activeMaps={selectedEmp?.activeMaps || []}
+          fallbackTargets={selectedEmp?.dbSnapshot?.targets || selectedEmp?.targets || []}
+          onClose={() => setStopModalOpen(false)}
+          onSent={(msg) => { setCmdFeedback(msg); setTimeout(() => setCmdFeedback(''), 6000); }}
         />
       )}
 
@@ -392,6 +608,38 @@ export default function BoostFalconControl() {
               ⏯️ Resume
             </button>
           </div>
+
+          {isOnline && realStatus === 'RUNNING' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <button 
+                onClick={() => setAddModalOpen(true)}
+                style={{
+                  padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                  background: 'rgba(74,222,128,0.15)',
+                  color: '#4ade80',
+                  border: `1px solid rgba(74,222,128,0.3)`,
+                  cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                }}
+              >
+                ➕ Add More Maps
+              </button>
+
+              <button 
+                onClick={() => setStopModalOpen(true)}
+                style={{
+                  padding: '14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                  background: 'rgba(239,68,68,0.15)',
+                  color: '#ef4444',
+                  border: `1px solid rgba(239,68,68,0.3)`,
+                  cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                }}
+              >
+                ⛔ Stop One Map
+              </button>
+            </div>
+          )}
 
           <button 
             onClick={() => setProxyModalOpen(true)}
