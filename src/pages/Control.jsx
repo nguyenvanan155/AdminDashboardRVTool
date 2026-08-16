@@ -536,13 +536,14 @@ function ResetLimitModal({ safeKey, dispName, targets, onClose, onSent }) {
 }
 
 
-export default function BoostFalconControl() {
+export default function Control() {
   const [employees, setEmployees] = useState({});
-  const selectedKey = TARGET_MACHINE;
+  const [licenses, setLicenses] = useState({});
+  const [selectedKey, setSelectedKey] = useState('');
   
   const [cmdFeedback, setCmdFeedback] = useState('');
   const [proxyModalOpen, setProxyModalOpen] = useState(false);
-    const [startModalOpen, setStartModalOpen] = React.useState(false);
+  const [startModalOpen, setStartModalOpen] = React.useState(false);
   const [addModalOpen, setAddModalOpen] = React.useState(false);
   const [stopModalOpen, setStopModalOpen] = React.useState(false);
   const [resetLimitModalOpen, setResetLimitModalOpen] = React.useState(false);
@@ -554,18 +555,17 @@ export default function BoostFalconControl() {
   }, []);
 
   useEffect(() => {
-    const empRef = ref(dbNokey, 'employees');
-    const unsub = onValue(empRef, (snap) => {
-      const data = snap.val() || {};
-      setEmployees(data);
-    });
-    return () => unsub();
+    const empRef = ref(db, 'employees');
+    const licRef = ref(db, 'licenses');
+    const unsubEmp = onValue(empRef, snap => setEmployees(snap.val() || {}));
+    const unsubLic = onValue(licRef, snap => setLicenses(snap.val() || {}));
+    return () => { unsubEmp(); unsubLic(); };
   }, []);
 
   async function handleCommand(action) {
     try {
       await sendCommand(selectedKey, action);
-      setCmdFeedback(`✅ Sent: ${action.toUpperCase()}`);
+      setCmdFeedback(`? Sent: ${action.toUpperCase()}`);
       setTimeout(() => setCmdFeedback(''), 4000);
     } catch (e) {
       alert('Failed to send command: ' + e.message);
@@ -577,8 +577,8 @@ export default function BoostFalconControl() {
     setTimeout(() => setCmdFeedback(''), 6000);
   }
 
-  const selectedEmp = employees[selectedKey];
-  // Even if no data yet, treat as offline
+  const selectedEmp = selectedKey ? employees[selectedKey] : null;
+  const safeKey = selectedKey;
   const realStatus = selectedEmp ? getRealStatus(selectedEmp) : 'OFFLINE';
   const isOnline = realStatus !== 'OFFLINE';
 
