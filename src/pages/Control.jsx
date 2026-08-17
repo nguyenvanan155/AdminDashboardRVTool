@@ -584,7 +584,7 @@ export default function Control() {
 
   return (
     <div>
-      <h1 className="page-title">🤖 BoostFalcon Control</h1>
+      <h1 className="page-title">🎮 Remote Control</h1>
       <p style={{color:'var(--muted)', marginBottom:24, fontSize:14}}>Manage your Auto-seller tool instances. Select a license key to view stats and send remote commands.</p>
 
       {proxyModalOpen && (
@@ -651,7 +651,7 @@ export default function Control() {
             }}
           >
             <option value="" disabled>-- Select an employee --</option>
-            {Object.entries(employees).map(([k]) => {
+            {Object.entries(licenses).map(([k, lic]) => {
               const dispName = licenses[k]?.note;
               const label = dispName ? `${dispName} (${k})` : k;
               return <option key={k} value={k} style={{ background: '#1a1f2e', color: '#fff' }}>{label}</option>;
@@ -903,4 +903,6 @@ export default function Control() {
     </div>
   );
 }
+
+
 
