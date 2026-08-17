@@ -1,18 +1,13 @@
-import { useState } from 'react';
-import { ref, get } from 'firebase/database';
+﻿import { useState, useEffect } from 'react';
+import { ref, get, onValue } from 'firebase/database';
 import * as XLSX from 'xlsx-js-style';
 import { db } from '../firebase';
-
-function loadNameMap() {
-  try { return JSON.parse(localStorage.getItem('nameMap') || '{}'); }
-  catch { return {}; }
-}
 
 function toDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-// Sinh ra mảng các ngày từ startDate đến endDate (inclusive)
+// Sinh ra mang cac ngay tu startDate den endDate (inclusive)
 function getDatesInRange(start, end) {
   const dates = [];
   const cur = new Date(start);
@@ -26,25 +21,29 @@ function getDatesInRange(start, end) {
 
 export default function Reports() {
   const today = toDateStr(new Date());
-  const [filterKey,   setFilterKey]   = useState('ALL');
-  const [startDate,   setStartDate]   = useState(today);
-  const [endDate,     setEndDate]     = useState(today);
-  const [loading,     setLoading]     = useState(false);
-  const [preview,     setPreview]     = useState(null); // { logs, summary }
-  const [employees,   setEmployees]   = useState({}); // safeKey -> emp data
+  const [filterKey,  setFilterKey]  = useState('ALL');
+  const [startDate,  setStartDate]  = useState(today);
+  const [endDate,    setEndDate]    = useState(today);
+  const [loading,    setLoading]    = useState(false);
+  const [preview,    setPreview]    = useState(null); // { logs, summary }
+  const [licenses,   setLicenses]   = useState({});  // safeKey -> lic data
 
-  const nameMap = loadNameMap();
-  const getName = (key) => nameMap[key] || key;
+  // Load licenses ngay khi mount de dropdown hien ngay
+  useEffect(() => {
+    const unsub = onValue(ref(db, 'licenses'), snap => setLicenses(snap.val() || {}));
+    return () => unsub();
+  }, []);
 
-  // Lấy dữ liệu Firebase
+  // Resolve display name tu /licenses
+  const getName = (key) => {
+    const lic = licenses[key];
+    return lic ? (lic.note || lic.key || key) : key;
+  };
+
+  // Lay du lieu Firebase
   async function fetchLogs() {
     setLoading(true);
     try {
-      // Lấy danh sách nhân viên
-      const empSnap = await get(ref(db, 'employees'));
-      const empData = empSnap.val() || {};
-      setEmployees(empData);
-
       const dates = getDatesInRange(startDate, endDate);
       let allLogs = [];
 
@@ -54,20 +53,23 @@ export default function Reports() {
         allLogs = allLogs.concat(Object.values(raw));
       }
 
-      // Lọc theo nhân viên
+      // Loc theo nhan vien
       if (filterKey !== 'ALL') {
-        allLogs = allLogs.filter(l => l.employeeSafeKey === filterKey || l.employeeKey === filterKey);
+        allLogs = allLogs.filter(l => {
+          const logSafe = l.employeeSafeKey || l.employeeKey?.replace(/[.#$[\]\/]/g, '_');
+          return logSafe === filterKey || l.employeeKey === filterKey;
+        });
       }
 
-      // Sắp xếp theo thời gian
+      // Sap xep theo thoi gian
       allLogs.sort((a, b) => a.timestamp - b.timestamp);
 
-      // Tính summary theo nhân viên
+      // Tinh summary theo nhan vien
       const summaryMap = {};
       for (const log of allLogs) {
         const k = log.employeeSafeKey || log.employeeKey;
         if (!summaryMap[k]) {
-          summaryMap[k] = { key: log.employeeKey, name: getName(log.employeeKey), done: 0, noIncrease: 0, alreadyReviewed: 0, failed: 0, maps: new Set() };
+          summaryMap[k] = { key: log.employeeKey, name: getName(k), done: 0, noIncrease: 0, alreadyReviewed: 0, failed: 0, maps: new Set() };
         }
         summaryMap[k].maps.add(log.mapName);
         if (log.status === 'DONE')             summaryMap[k].done++;
@@ -92,14 +94,14 @@ export default function Reports() {
     setLoading(false);
   }
 
-  // Xuất file Excel
+  // Xuat file Excel
   function exportExcel() {
     if (!preview) return;
     const wb = XLSX.utils.book_new();
 
-    /* ── Sheet 1: Tổng hợp KPI ── */
+    /* -- Sheet 1: Tong hop KPI -- */
     const s1Data = [
-      ['Employee', 'License Key', 'Maps Processed', '✅ Success', '⚠️ No Increase', '🔁 Already Reviewed', '❌ Failed', 'Total', 'Success Rate'],
+      ['Employee', 'License Key', 'Maps Processed', 'Success', 'No Increase', 'Already Reviewed', 'Failed', 'Total', 'Success Rate'],
     ];
     for (const s of preview.summary) {
       s1Data.push([s.name, s.key, s.maps, s.done, s.noIncrease, s.alreadyReviewed, s.failed, s.total, `${s.rate}%`]);
@@ -108,13 +110,10 @@ export default function Reports() {
     ws1['!cols'] = [20,36,40,18,14,14,12,10,14].map(w => ({wch:w}));
     XLSX.utils.book_append_sheet(wb, ws1, 'KPI Summary');
 
-    /* ── Từ Tab 2 trở đi: Mỗi Map là một Sheet ── */
-    // Nhóm logs theo Map Name
+    /* -- Tu Tab 2 tro di: Moi Map la mot Sheet -- */
     const mapGroups = {};
     for (const log of preview.logs) {
-      // Chỉ export những RV thành công (giống với logic 'USED', 'PENDING_LINK' của Electron)
       if (log.status !== 'DONE') continue;
-
       if (!mapGroups[log.mapName]) mapGroups[log.mapName] = [];
       mapGroups[log.mapName].push(log);
     }
@@ -144,7 +143,7 @@ export default function Reports() {
       const ws = XLSX.utils.aoa_to_sheet(sheetData);
       ws[XLSX.utils.encode_cell({ r: 0, c: 0 })].v = mapName;
 
-      // Tô màu vàng cột A
+      // To mau vang cot A
       const colStyle = { fill: { fgColor: { rgb: "FFFFFF00" } } };
       for (let rIdx = 0; rIdx < sheetData.length; rIdx++) {
         const cellAddress = XLSX.utils.encode_cell({ r: rIdx, c: 0 });
@@ -154,7 +153,6 @@ export default function Reports() {
 
       ws['!cols'] = [40, 70, 70, 15].map(w => ({wch:w}));
 
-      // Rút gọn tên sheet, bỏ ký tự đặc biệt theo quy định của Excel
       let baseName = mapName.replace(/[\\/?*[\]:]/g, ' ').trim().substring(0, 28);
       if (!baseName) baseName = 'Map';
       
@@ -173,8 +171,8 @@ export default function Reports() {
     XLSX.writeFile(wb, fname);
   }
 
-  // Danh sách nhân viên để lọc
-  const empOptions = Object.entries(employees);
+  // Danh sach license de loc — lay tu /licenses, bo key khong hop le
+  const licenseOptions = Object.entries(licenses);
 
   return (
     <div>
@@ -185,8 +183,8 @@ export default function Reports() {
         <div className="toolbar">
           <select value={filterKey} onChange={e => setFilterKey(e.target.value)}>
             <option value="ALL">All Employees</option>
-            {empOptions.map(([sk, emp]) => (
-              <option key={sk} value={sk}>{nameMap[sk] || emp.key || sk}</option>
+            {licenseOptions.map(([sk, lic]) => (
+              <option key={sk} value={sk}>{lic.note || lic.key || sk}</option>
             ))}
           </select>
           <div style={{display:'flex', alignItems:'center', gap:8}}>
@@ -208,7 +206,7 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* Preview Tổng hợp */}
+      {/* Preview Tong hop */}
       {preview && (
         <>
           <div className="section-title">Sheet 1 — KPI Summary</div>
@@ -250,7 +248,7 @@ export default function Reports() {
             </table>
           </div>
 
-          {/* Preview Chi tiết */}
+          {/* Preview Chi tiet */}
           <div className="section-title">Sheet 2 — Details ({preview.logs.length} rows)</div>
           <div className="table-wrap">
             <table>
@@ -265,12 +263,14 @@ export default function Reports() {
                 </tr>
               </thead>
               <tbody>
-                {preview.logs.slice(0, 100).map((log, i) => (
+                {preview.logs.slice(0, 100).map((log, i) => {
+                  const logSafeKey = log.employeeSafeKey || log.employeeKey;
+                  return (
                   <tr key={i}>
                     <td style={{fontSize:13, color:'var(--muted)'}}>
                       {new Date(log.timestamp).toLocaleString('en-US')}
                     </td>
-                    <td style={{fontWeight:500}}>{getName(log.employeeKey)}</td>
+                    <td style={{fontWeight:500}}>{getName(logSafeKey)}</td>
                     <td>{log.mapName}</td>
                     <td style={{fontSize:13, color:'var(--muted)'}}>{log.account}</td>
                     <td>
@@ -286,7 +286,8 @@ export default function Reports() {
                         : <span style={{color:'var(--muted)'}}>—</span>}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
                 {preview.logs.length > 100 && (
                   <tr><td colSpan={6} style={{textAlign:'center', color:'var(--muted)', padding:12, fontSize:13}}>
                     ... and {preview.logs.length - 100} more rows (export to Excel to view all)

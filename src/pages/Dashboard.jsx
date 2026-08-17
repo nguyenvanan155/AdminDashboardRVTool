@@ -1,21 +1,16 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { db } from '../firebase';
 import DatabaseModal from '../components/DatabaseModal';
 
-function loadNameMap() {
-  try { return JSON.parse(localStorage.getItem('nameMap') || '{}'); }
-  catch { return {}; }
-}
-
-/** Xác định badge màu theo status từ Firebase */
+/** Xac dinh badge mau theo status tu Firebase */
 function StatusBadge({ status }) {
   if (status === 'ACTIVE')  return <span className="badge online"><div className="dot g" />🟢 Active</span>;
   if (status === 'IDLE')    return <span className="badge" style={{background:'rgba(234,179,8,0.12)',color:'#eab308'}}><div className="dot y" />🟡 Idle</span>;
   return                           <span className="badge offline"><div className="dot r" />🔴 Offline</span>;
 }
 
-/** Tự động offline nếu quá 3 phút (180000ms) không update lastSeen */
+/** Tu dong offline neu qua 3 phut (180000ms) khong update lastSeen */
 function getRealStatus(emp) {
   if (emp.status === 'OFFLINE') return 'OFFLINE';
   if (!emp.lastSeen || Date.now() - emp.lastSeen > 180000) return 'OFFLINE';
@@ -23,11 +18,11 @@ function getRealStatus(emp) {
 }
 
 export default function Dashboard() {
-  const [employees,    setEmployees]    = useState({});
-  const [todayLogs,   setTodayLogs]    = useState([]);
-  const [nameMap]                      = useState(loadNameMap);
-  const [modalEmp,    setModalEmp]     = useState(null); // { safeKey, emp } | null
-  const [,            setTick]         = useState(0);
+  const [employees,  setEmployees]  = useState({});
+  const [licenses,   setLicenses]   = useState({});
+  const [todayLogs,  setTodayLogs]  = useState([]);
+  const [modalEmp,   setModalEmp]   = useState(null);
+  const [,           setTick]       = useState(0);
 
   const todayStr = (() => {
     const now = new Date();
@@ -46,6 +41,11 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
+    const unsub = onValue(ref(db, 'licenses'), snap => setLicenses(snap.val() || {}));
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
     const unsub = onValue(ref(db, `logs/${todayStr}`), snap => {
       const raw  = snap.val() || {};
       setTodayLogs(Object.values(raw).sort((a, b) => b.timestamp - a.timestamp));
@@ -53,15 +53,25 @@ export default function Dashboard() {
     return () => unsub();
   }, [todayStr]);
 
+  // Chi hien employees co license key hop le trong /licenses
+  const licenseEntries = Object.entries(licenses);
+  const employeesList = licenseEntries.map(([safeKey, lic]) => {
+    const emp = employees[safeKey] || {};
+    return { ...emp, safeKey, realStatus: getRealStatus(emp), dispName: lic.note || lic.key || safeKey };
+  });
+
+  // Resolve display name tu /licenses
+  const getName = (key) => {
+    const lic = licenses[key];
+    return lic ? (lic.note || lic.key || key) : key;
+  };
+
   // KPI
-  const employeesList = Object.values(employees).map(e => ({ ...e, realStatus: getRealStatus(e) }));
   const onlineCount = employeesList.filter(e => e.realStatus === 'ACTIVE' || e.realStatus === 'IDLE').length;
   const activeCount = employeesList.filter(e => e.realStatus === 'ACTIVE').length;
   const totalEmp    = employeesList.length;
   const doneToday   = todayLogs.filter(l => l.status === 'DONE').length;
   const mapsToday   = [...new Set(todayLogs.map(l => l.mapName))].filter(Boolean).length;
-
-  const getName = (key) => nameMap[key] || key;
 
   return (
     <div>
@@ -91,7 +101,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Employee Status Table */}
+      {/* Employee Status Table — chi hien license keys */}
       <div className="section-title">Employee Status (Live)</div>
       <div className="table-wrap" style={{marginBottom:32}}>
         <table>
@@ -106,16 +116,17 @@ export default function Dashboard() {
             </tr>
           </thead>
           <tbody>
-            {Object.entries(employees).length === 0 && (
-              <tr><td colSpan={6} className="empty">No employees connected yet...</td></tr>
+            {employeesList.length === 0 && (
+              <tr><td colSpan={6} className="empty">No licenses configured yet...</td></tr>
             )}
-            {Object.entries(employees).map(([safeKey, emp]) => {
-              const realStatus = getRealStatus(emp);
-              const done = todayLogs.filter(l => l.employeeSafeKey === safeKey && l.status === 'DONE').length;
+            {employeesList.map(({ safeKey, dispName, realStatus, ...emp }) => {
+              const done = todayLogs.filter(l =>
+                (l.employeeSafeKey === safeKey || l.employeeKey === safeKey) && l.status === 'DONE'
+              ).length;
               const hasTargets = emp.targets && Object.keys(emp.targets).length > 0;
               return (
                 <tr key={safeKey}>
-                  <td style={{fontWeight:600}}>{getName(emp.key || safeKey)}</td>
+                  <td style={{fontWeight:600}}>{dispName}</td>
                   <td><StatusBadge status={realStatus} /></td>
                   <td style={{color: realStatus === 'ACTIVE' ? 'var(--text)' : 'var(--muted)'}}>
                     {emp.currentMap || '—'}
@@ -162,12 +173,15 @@ export default function Dashboard() {
             {todayLogs.length === 0 && (
               <tr><td colSpan={6} className="empty">No logs recorded today...</td></tr>
             )}
-            {todayLogs.slice(0, 50).map((log, i) => (
+            {todayLogs.slice(0, 50).map((log, i) => {
+              const logSafeKey = log.employeeSafeKey || log.employeeKey;
+              const logName = getName(logSafeKey);
+              return (
               <tr key={i}>
                 <td style={{fontSize:13, color:'var(--muted)'}}>
                   {new Date(log.timestamp).toLocaleTimeString('en-US')}
                 </td>
-                <td style={{fontWeight:500}}>{getName(log.employeeKey)}</td>
+                <td style={{fontWeight:500}}>{logName}</td>
                 <td>{log.mapName}</td>
                 <td style={{fontSize:13, color:'var(--muted)'}}>{log.account}</td>
                 <td>
@@ -183,7 +197,8 @@ export default function Dashboard() {
                     : <span style={{color:'var(--muted)'}}>—</span>}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -192,7 +207,7 @@ export default function Dashboard() {
       {modalEmp && (
         <DatabaseModal
           employee={modalEmp.emp}
-          name={getName(modalEmp.emp.key || modalEmp.safeKey)}
+          name={(licenses[modalEmp.safeKey]?.note) || modalEmp.safeKey}
           onClose={() => setModalEmp(null)}
         />
       )}
